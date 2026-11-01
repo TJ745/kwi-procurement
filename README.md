@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Procurement Management
 
-## Getting Started
+Next.js 16 (App Router, Cache Components) · TypeScript · Tailwind CSS v4 · shadcn/ui (Base UI) · Prisma 7 + Neon PostgreSQL · Better Auth.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `npm install` (also runs `prisma generate`).
+2. Copy `.env.example` to `.env` and fill in:
+   - `DATABASE_URL` – Neon **pooled** connection string (used by the app).
+   - `DIRECT_URL` – Neon **direct** connection string (used by Prisma migrations).
+   - `BETTER_AUTH_SECRET` – random string of at least 32 characters (`openssl rand -base64 32`).
+   - `BETTER_AUTH_URL` – e.g. `http://localhost:3000`.
+   - `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD` (min. 12 characters), `SUPER_ADMIN_NAME` (optional).
+3. Apply migrations: `npm run db:migrate` (`prisma migrate deploy`; creates tables, never drops them).
+4. Create the Super Admin: `npm run sync-super-admin`.
+5. `npm run dev` and sign in at <http://localhost:3000/sign-in>.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Changing the Super Admin
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Edit the `SUPER_ADMIN_*` values in `.env` and run `npm run sync-super-admin` again. It updates the
+name and password, or changes the email when exactly one Super Admin exists. Changing the email or
+password signs the Super Admin out of all sessions. Edits to `.env` have no effect until the command
+is run. The command never promotes an existing ordinary user to Super Admin.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Access control
 
-## Learn More
+- Public sign-up is disabled; accounts are provisioned by administrators.
+- `user.role` (`super_admin` | `user`) is stored in the database and can never be set through Better Auth endpoints (`input: false`).
+- `proxy.ts` only performs an optimistic redirect when no session cookie exists. Authorization is enforced on the server by `requireUser()` / `requireSuperAdmin()` in `lib/session.ts`, which every page (and future Server Action) calls.
+- Users, Roles and Settings require Super Admin; other users receive a 403 page and do not see these links.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run lint` / `typecheck` | ESLint / TypeScript |
+| `npm run db:migrate` | Apply pending migrations |
+| `npm run db:migrate:status` | Show migration status |
+| `npm run sync-super-admin` | Create/update the Super Admin from `.env` |
+# kwi-procurement

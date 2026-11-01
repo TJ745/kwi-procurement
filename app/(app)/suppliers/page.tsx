@@ -18,8 +18,7 @@ import { createSupplier, deleteSupplier, updateSupplier } from "@/lib/actions/su
 import { parseListParams } from "@/lib/data/list-params";
 import { listSuppliers } from "@/lib/data/master-data";
 import { getNavItem } from "@/lib/navigation";
-import { canManageMasterData } from "@/lib/permissions";
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { toSupplierFormValues } from "@/lib/supplier-format";
 
 export const metadata: Metadata = { title: "Suppliers" };
@@ -31,10 +30,12 @@ function Muted({ value }: { value: string | null }) {
 }
 
 export default async function Page({ searchParams }: PageProps<"/suppliers">) {
-  const { user } = await requireUser();
+  const { can } = await requirePermission("suppliers:view");
   const params = parseListParams(await searchParams);
   const result = await listSuppliers(params);
-  const canManage = canManageMasterData(user.role);
+  const canCreate = can("suppliers:create");
+  const canEdit = can("suppliers:edit");
+  const canDelete = can("suppliers:delete");
   const item = getNavItem("/suppliers");
 
   return (
@@ -43,7 +44,7 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
         title={item.title}
         description={item.description}
         actions={
-          canManage && (
+          canCreate && (
             <FormDialog mode="create" title={CREATE_LABEL} triggerLabel={CREATE_LABEL} size="lg">
               <SupplierForm action={createSupplier} />
             </FormDialog>
@@ -55,7 +56,7 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
         noun="suppliers"
         params={params}
         result={result}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel={CREATE_LABEL}
         searchPlaceholder="Search name, VAT, CR, contact or email"
       >
@@ -67,7 +68,7 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
               <TableHead className="hidden lg:table-cell">CR</TableHead>
               <TableHead className="hidden md:table-cell">Contact</TableHead>
               <TableHead className="hidden xl:table-cell">Email</TableHead>
-              {canManage && (
+              {(canEdit || canDelete) && (
                 <TableHead className="w-24 pr-4 text-right">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -106,25 +107,29 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
                 <TableCell className="hidden max-w-60 truncate xl:table-cell">
                   <Muted value={supplier.email} />
                 </TableCell>
-                {canManage && (
+                {(canEdit || canDelete) && (
                   <TableCell className="pr-4">
                     <div className="flex justify-end gap-1">
-                      <FormDialog
-                        mode="edit"
-                        title="Edit supplier"
-                        triggerLabel={`Edit supplier ${supplier.name}`}
-                        size="lg"
-                      >
-                        <SupplierForm
-                          action={updateSupplier.bind(null, supplier.id)}
-                          defaultValues={toSupplierFormValues(supplier)}
+                      {canEdit && (
+                        <FormDialog
+                          mode="edit"
+                          title="Edit supplier"
+                          triggerLabel={`Edit supplier ${supplier.name}`}
+                          size="lg"
+                        >
+                          <SupplierForm
+                            action={updateSupplier.bind(null, supplier.id)}
+                            defaultValues={toSupplierFormValues(supplier)}
+                          />
+                        </FormDialog>
+                      )}
+                      {canDelete && (
+                        <DeleteButton
+                          entityLabel="supplier"
+                          itemLabel={supplier.name}
+                          action={deleteSupplier.bind(null, supplier.id)}
                         />
-                      </FormDialog>
-                      <DeleteButton
-                        entityLabel="supplier"
-                        itemLabel={supplier.name}
-                        action={deleteSupplier.bind(null, supplier.id)}
-                      />
+                      )}
                     </div>
                   </TableCell>
                 )}

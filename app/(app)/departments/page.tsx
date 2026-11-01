@@ -13,18 +13,19 @@ import {
 import { parseListParams } from "@/lib/data/list-params";
 import { listDepartments } from "@/lib/data/master-data";
 import { getNavItem } from "@/lib/navigation";
-import { canManageMasterData } from "@/lib/permissions";
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Departments" };
 
 const CREATE_LABEL = "New department";
 
 export default async function Page({ searchParams }: PageProps<"/departments">) {
-  const { user } = await requireUser();
+  const { can, formatDate } = await requirePermission("departments:view");
   const params = parseListParams(await searchParams);
   const result = await listDepartments(params);
-  const canManage = canManageMasterData(user.role);
+  const canCreate = can("departments:create");
+  const canEdit = can("departments:edit");
+  const canDelete = can("departments:delete");
   const item = getNavItem("/departments");
 
   return (
@@ -33,7 +34,7 @@ export default async function Page({ searchParams }: PageProps<"/departments">) 
         title={item.title}
         description={item.description}
         actions={
-          canManage && (
+          canCreate && (
             <FormDialog mode="create" title={CREATE_LABEL} triggerLabel={CREATE_LABEL}>
               <NameForm action={createDepartment} />
             </FormDialog>
@@ -45,14 +46,16 @@ export default async function Page({ searchParams }: PageProps<"/departments">) 
         noun="departments"
         params={params}
         result={result}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel={CREATE_LABEL}
         searchPlaceholder="Search departments"
       >
         <NameEntityTable
           rows={result.items}
           entityLabel="department"
-          canManage={canManage}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          formatDate={formatDate.date}
           update={updateDepartment}
           remove={deleteDepartment}
         />

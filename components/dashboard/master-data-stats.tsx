@@ -9,11 +9,13 @@ const numberFormat = new Intl.NumberFormat("en");
 
 export async function MasterDataStats() {
   const counts = await getMasterDataCounts();
+  const visible = MASTER_DATA.filter((item) => counts.has(item.href));
+  if (visible.length === 0) return null;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {MASTER_DATA.map((item) => {
-        const count = counts[item.href as keyof typeof counts];
+      {visible.map((item) => {
+        const count = counts.get(item.href) ?? 0;
         return (
           <Link
             key={item.href}

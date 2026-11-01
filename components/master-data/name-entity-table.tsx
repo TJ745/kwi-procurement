@@ -10,13 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ActionResult } from "@/lib/action-result";
-import { formatDate } from "@/lib/format";
 
 type NameEntityTableProps = {
   rows: { id: string; name: string; updatedAt: Date }[];
   /** Singular, lowercase noun, e.g. "department". */
   entityLabel: string;
-  canManage: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  formatDate: (value: Date) => string;
   update: (id: string, input: unknown) => Promise<ActionResult>;
   remove: (id: string) => Promise<ActionResult>;
 };
@@ -25,17 +26,21 @@ type NameEntityTableProps = {
 export function NameEntityTable({
   rows,
   entityLabel,
-  canManage,
+  canEdit,
+  canDelete,
+  formatDate,
   update,
   remove,
 }: NameEntityTableProps) {
+  const hasActions = canEdit || canDelete;
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="pl-4">Name</TableHead>
           <TableHead className="hidden sm:table-cell">Last updated</TableHead>
-          {canManage && (
+          {hasActions && (
             <TableHead className="w-24 pr-4 text-right">
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -49,24 +54,28 @@ export function NameEntityTable({
             <TableCell className="hidden text-muted-foreground sm:table-cell">
               {formatDate(row.updatedAt)}
             </TableCell>
-            {canManage && (
+            {hasActions && (
               <TableCell className="pr-4">
                 <div className="flex justify-end gap-1">
-                  <FormDialog
-                    mode="edit"
-                    title={`Edit ${entityLabel}`}
-                    triggerLabel={`Edit ${entityLabel} ${row.name}`}
-                  >
-                    <NameForm
-                      action={update.bind(null, row.id)}
-                      defaultValues={{ name: row.name }}
+                  {canEdit && (
+                    <FormDialog
+                      mode="edit"
+                      title={`Edit ${entityLabel}`}
+                      triggerLabel={`Edit ${entityLabel} ${row.name}`}
+                    >
+                      <NameForm
+                        action={update.bind(null, row.id)}
+                        defaultValues={{ name: row.name }}
+                      />
+                    </FormDialog>
+                  )}
+                  {canDelete && (
+                    <DeleteButton
+                      entityLabel={entityLabel}
+                      itemLabel={row.name}
+                      action={remove.bind(null, row.id)}
                     />
-                  </FormDialog>
-                  <DeleteButton
-                    entityLabel={entityLabel}
-                    itemLabel={row.name}
-                    action={remove.bind(null, row.id)}
-                  />
+                  )}
                 </div>
               </TableCell>
             )}

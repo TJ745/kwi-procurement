@@ -12,5 +12,8 @@ export function verifyPassword(passwordHash: string, password: string) {
   return verify(passwordHash, password);
 }
 
-export const PASSWORD_MIN_LENGTH = 12;
+/** Lowest minimum length that Settings > Security allows. */
+export const PASSWORD_ABSOLUTE_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
+/** Minimum for the .env-managed Super Admin password. */
+export const PASSWORD_MIN_LENGTH = 12;

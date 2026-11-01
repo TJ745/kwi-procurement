@@ -32,7 +32,10 @@ export function SignInForm({ redirectTo }: { redirectTo: string }) {
       toast.error(
         error.status === 429
           ? "Too many sign-in attempts. Please wait and try again."
-          : "Invalid email or password.",
+          : // Only reached after a correct password, so it reveals nothing new.
+            error.status === 403
+            ? "This account has been deactivated. Contact your administrator."
+            : "Invalid email or password.",
       );
       form.resetField("password");
       return;

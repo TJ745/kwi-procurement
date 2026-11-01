@@ -12,6 +12,8 @@ type UseActionFormOptions<T extends FieldValues> = {
   defaultValues: DefaultValues<T>;
   action: (input: T) => Promise<ActionResult>;
   onSuccess?: () => void;
+  /** Make the saved values the new baseline (for forms that stay open). */
+  resetOnSuccess?: boolean;
 };
 
 /**
@@ -24,6 +26,7 @@ export function useActionForm<T extends FieldValues>({
   defaultValues,
   action,
   onSuccess,
+  resetOnSuccess,
 }: UseActionFormOptions<T>) {
   const form = useForm<T>({ resolver: zodResolver(schema), defaultValues });
 
@@ -37,6 +40,7 @@ export function useActionForm<T extends FieldValues>({
     }
     if (result.ok) {
       toast.success(result.message);
+      if (resetOnSuccess) form.reset(values);
       onSuccess?.();
       return;
     }

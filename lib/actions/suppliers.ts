@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { masterDataMutation } from "@/lib/actions/master-data-mutation";
+import { runMutation } from "@/lib/actions/run-mutation";
 import { prisma } from "@/lib/prisma";
 import { normalizeIban } from "@/lib/validation/iban";
 import {
@@ -32,7 +32,8 @@ function toSupplierData(input: SupplierInput) {
 }
 
 export async function createSupplier(input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "suppliers:create",
     schema: supplierSchema,
     input,
     unique,
@@ -42,7 +43,8 @@ export async function createSupplier(input: unknown) {
 }
 
 export async function updateSupplier(id: string, input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "suppliers:edit",
     schema: supplierSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -53,7 +55,8 @@ export async function updateSupplier(id: string, input: unknown) {
 }
 
 export async function deleteSupplier(id: string) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "suppliers:delete",
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Supplier deleted.",
@@ -63,7 +66,8 @@ export async function deleteSupplier(id: string) {
 
 /** Used on the detail page, which navigates back to the list itself. */
 export async function deleteSupplierFromDetail(id: string) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "suppliers:delete",
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Supplier deleted.",

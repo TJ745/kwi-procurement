@@ -13,18 +13,19 @@ import {
 import { parseListParams } from "@/lib/data/list-params";
 import { listCategories } from "@/lib/data/master-data";
 import { getNavItem } from "@/lib/navigation";
-import { canManageMasterData } from "@/lib/permissions";
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Categories" };
 
 const CREATE_LABEL = "New category";
 
 export default async function Page({ searchParams }: PageProps<"/categories">) {
-  const { user } = await requireUser();
+  const { can, formatDate } = await requirePermission("categories:view");
   const params = parseListParams(await searchParams);
   const result = await listCategories(params);
-  const canManage = canManageMasterData(user.role);
+  const canCreate = can("categories:create");
+  const canEdit = can("categories:edit");
+  const canDelete = can("categories:delete");
   const item = getNavItem("/categories");
 
   return (
@@ -33,7 +34,7 @@ export default async function Page({ searchParams }: PageProps<"/categories">) {
         title={item.title}
         description={item.description}
         actions={
-          canManage && (
+          canCreate && (
             <FormDialog mode="create" title={CREATE_LABEL} triggerLabel={CREATE_LABEL}>
               <NameForm action={createCategory} />
             </FormDialog>
@@ -45,14 +46,16 @@ export default async function Page({ searchParams }: PageProps<"/categories">) {
         noun="categories"
         params={params}
         result={result}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel={CREATE_LABEL}
         searchPlaceholder="Search categories"
       >
         <NameEntityTable
           rows={result.items}
           entityLabel="category"
-          canManage={canManage}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          formatDate={formatDate.date}
           update={updateCategory}
           remove={deleteCategory}
         />

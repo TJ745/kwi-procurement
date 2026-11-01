@@ -2,14 +2,15 @@
 
 import { z } from "zod";
 
-import { masterDataMutation } from "@/lib/actions/master-data-mutation";
+import { runMutation } from "@/lib/actions/run-mutation";
 import { prisma } from "@/lib/prisma";
 import { categorySchema, recordIdSchema } from "@/lib/validation/master-data";
 
 const unique = { field: "name", message: "A category with this name already exists." };
 
 export async function createCategory(input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "categories:create",
     schema: categorySchema,
     input,
     unique,
@@ -19,7 +20,8 @@ export async function createCategory(input: unknown) {
 }
 
 export async function updateCategory(id: string, input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "categories:edit",
     schema: categorySchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -29,7 +31,8 @@ export async function updateCategory(id: string, input: unknown) {
 }
 
 export async function deleteCategory(id: string) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "categories:delete",
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Category deleted.",

@@ -2,14 +2,15 @@
 
 import { z } from "zod";
 
-import { masterDataMutation } from "@/lib/actions/master-data-mutation";
+import { runMutation } from "@/lib/actions/run-mutation";
 import { prisma } from "@/lib/prisma";
 import { departmentSchema, recordIdSchema } from "@/lib/validation/master-data";
 
 const unique = { field: "name", message: "A department with this name already exists." };
 
 export async function createDepartment(input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "departments:create",
     schema: departmentSchema,
     input,
     unique,
@@ -19,7 +20,8 @@ export async function createDepartment(input: unknown) {
 }
 
 export async function updateDepartment(id: string, input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "departments:edit",
     schema: departmentSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -29,7 +31,8 @@ export async function updateDepartment(id: string, input: unknown) {
 }
 
 export async function deleteDepartment(id: string) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "departments:delete",
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Department deleted.",

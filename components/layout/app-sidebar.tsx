@@ -20,16 +20,18 @@ import {
 import { NAV_GROUPS, isActivePath } from "@/lib/navigation";
 
 type AppSidebarProps = {
-  /** Decided on the server from the verified session. Display only. */
-  showAdministration: boolean;
+  /** Links the user may open, decided on the server. Display only. */
+  visibleHrefs: string[];
 };
 
-export function AppSidebar({ showAdministration }: AppSidebarProps) {
+export function AppSidebar({ visibleHrefs }: AppSidebarProps) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const groups = NAV_GROUPS.filter(
-    (group) => !group.superAdminOnly || showAdministration,
-  );
+  const visible = new Set(visibleHrefs);
+  const groups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => visible.has(item.href)),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <Sidebar collapsible="icon">

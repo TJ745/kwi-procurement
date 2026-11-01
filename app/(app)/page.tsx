@@ -1,3 +1,4 @@
+import { ShieldQuestion } from "lucide-react";
 import { Suspense } from "react";
 
 import {
@@ -5,12 +6,18 @@ import {
   MasterDataStatsSkeleton,
 } from "@/components/dashboard/master-data-stats";
 import { ModuleList } from "@/components/dashboard/module-list";
+import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { DASHBOARD, MASTER_DATA, WORKFLOWS } from "@/lib/navigation";
+import { NAV_PERMISSIONS } from "@/lib/permissions";
 import { requireUser } from "@/lib/session";
 
 export default async function DashboardPage() {
-  const { user } = await requireUser();
+  const { user, can } = await requireUser();
+  const masterData = MASTER_DATA.filter((item) => {
+    const permission = NAV_PERMISSIONS[item.href];
+    return !permission || can(permission);
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,21 +26,31 @@ export default async function DashboardPage() {
         description={DASHBOARD.description}
       />
 
-      <section aria-labelledby="master-data-summary" className="flex flex-col gap-3">
-        <h2 id="master-data-summary" className="sr-only">
-          Master data summary
-        </h2>
-        <Suspense fallback={<MasterDataStatsSkeleton />}>
-          <MasterDataStats />
-        </Suspense>
-      </section>
+      {masterData.length > 0 ? (
+        <section aria-labelledby="master-data-summary" className="flex flex-col gap-3">
+          <h2 id="master-data-summary" className="sr-only">
+            Master data summary
+          </h2>
+          <Suspense fallback={<MasterDataStatsSkeleton />}>
+            <MasterDataStats />
+          </Suspense>
+        </section>
+      ) : (
+        <EmptyState
+          icon={ShieldQuestion}
+          title="No modules assigned yet"
+          description="Your role does not include access to any master-data modules. Contact your administrator if you need access."
+        />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ModuleList
-          title="Master data"
-          description="Reference data used across procurement workflows."
-          items={MASTER_DATA}
-        />
+        {masterData.length > 0 && (
+          <ModuleList
+            title="Master data"
+            description="Reference data used across procurement workflows."
+            items={masterData}
+          />
+        )}
         <ModuleList
           title="Procurement modules"
           description="These workflows will be configured in upcoming phases."

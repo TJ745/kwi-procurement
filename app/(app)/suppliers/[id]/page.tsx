@@ -16,9 +16,7 @@ import {
 } from "@/components/ui/card";
 import { deleteSupplierFromDetail, updateSupplier } from "@/lib/actions/suppliers";
 import { getSupplier } from "@/lib/data/master-data";
-import { formatDateTime } from "@/lib/format";
-import { canManageMasterData } from "@/lib/permissions";
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 import { formatIban, toSupplierFormValues } from "@/lib/supplier-format";
 
 export const metadata: Metadata = { title: "Supplier" };
@@ -27,7 +25,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex flex-col gap-1">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm break-words whitespace-pre-line">
+      <dd className="text-sm wrap-break-word whitespace-pre-line">
         {value || <span className="text-muted-foreground">—</span>}
       </dd>
     </div>
@@ -35,11 +33,12 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 }
 
 export default async function Page({ params }: PageProps<"/suppliers/[id]">) {
-  const { user } = await requireUser();
+  const { can, formatDate } = await requirePermission("suppliers:view");
   const { id } = await params;
   const supplier = await getSupplier(id);
   if (!supplier) notFound();
-  const canManage = canManageMasterData(user.role);
+  const canEdit = can("suppliers:edit");
+  const canDelete = can("suppliers:delete");
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,10 +51,10 @@ export default async function Page({ params }: PageProps<"/suppliers/[id]">) {
       </Link>
       <PageHeader
         title={supplier.name}
-        description={`Last updated ${formatDateTime(supplier.updatedAt)}`}
+        description={`Last updated ${formatDate.dateTime(supplier.updatedAt)}`}
         actions={
-          canManage && (
-            <>
+          <>
+            {canEdit && (
               <FormDialog
                 mode="edit"
                 title="Edit supplier"
@@ -67,6 +66,8 @@ export default async function Page({ params }: PageProps<"/suppliers/[id]">) {
                   defaultValues={toSupplierFormValues(supplier)}
                 />
               </FormDialog>
+            )}
+            {canDelete && (
               <DeleteButton
                 variant="button"
                 entityLabel="supplier"
@@ -74,8 +75,8 @@ export default async function Page({ params }: PageProps<"/suppliers/[id]">) {
                 action={deleteSupplierFromDetail.bind(null, supplier.id)}
                 redirectTo="/suppliers"
               />
-            </>
-          )
+            )}
+          </>
         }
       />
       <div className="grid gap-4 lg:grid-cols-2">

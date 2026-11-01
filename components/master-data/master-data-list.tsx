@@ -13,7 +13,7 @@ type MasterDataListProps = {
   noun: string;
   params: ListParams;
   result: Paginated<unknown>;
-  canManage: boolean;
+  canCreate: boolean;
   createLabel: string;
   searchPlaceholder: string;
   children: React.ReactNode;
@@ -25,7 +25,7 @@ export function MasterDataList({
   noun,
   params,
   result,
-  canManage,
+  canCreate,
   createLabel,
   searchPlaceholder,
   children,
@@ -38,7 +38,7 @@ export function MasterDataList({
         icon={item.icon}
         title={`No ${noun} yet`}
         description={
-          canManage
+          canCreate
             ? `Use “${createLabel}” to add the first one.`
             : `${item.title} will appear here once they are added by an administrator.`
         }

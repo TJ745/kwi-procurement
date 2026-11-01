@@ -17,13 +17,22 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  // Application role. Never accepted from client input (see lib/auth.ts).
-  role          String    @default("user")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  // Built-in system role: "super_admin" (the .env-managed account, full
+  // access) or "user" (access defined by `customRole`). Never accepted from
+  // client input (see lib/auth.ts).
+  role               String    @default("user")
+  roleId             String?
+  customRole         Role?     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  // Deactivated users cannot sign in; records are kept for history.
+  active             Boolean   @default(true)
+  // Set when an administrator assigns a temporary password.
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
+  sessions           Session[]
+  accounts           Account[]
 
+  @@index([roleId])
   @@map("user")
 }
 
@@ -81,6 +90,59 @@ model RateLimit {
   lastRequest BigInt
 
   @@map("rateLimit")
+}
+
+// ---------------------------------------------------------------------------
+// Access control and settings
+// ---------------------------------------------------------------------------
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.Citext
+  description String?
+  // Permission keys such as "projects:view" (see lib/permissions.ts).
+  permissions String[]
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("role")
+}
+
+// Single row (id = 1) holding system-wide settings.
+model AppSettings {
+  id                   Int      @id @default(1)
+  companyName          String?
+  companyAddress       String?
+  companyVat           String?
+  companyCr            String?
+  companyPhone         String?
+  companyEmail         String?
+  companyLogo          Bytes?
+  companyLogoType      String?
+  currency             String   @default("USD")
+  timeZone             String   @default("UTC")
+  dateFormat           String   @default("d MMM yyyy")
+  sessionDurationHours Int      @default(168)
+  minPasswordLength    Int      @default(12)
+  updatedAt            DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// Numbering configuration and counter per document type.
+model DocumentSequence {
+  type        String   @id
+  prefix      String
+  includeYear Boolean  @default(true)
+  resetYearly Boolean  @default(true)
+  padding     Int      @default(4)
+  nextNumber  Int      @default(1)
+  // Year the counter last started from 1 (used when resetYearly is on).
+  counterYear Int?
+  updatedAt   DateTime @updatedAt
+
+  @@map("document_sequence")
 }
 
 // ---------------------------------------------------------------------------

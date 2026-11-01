@@ -2,14 +2,15 @@
 
 import { z } from "zod";
 
-import { masterDataMutation } from "@/lib/actions/master-data-mutation";
+import { runMutation } from "@/lib/actions/run-mutation";
 import { prisma } from "@/lib/prisma";
 import { projectSchema, recordIdSchema } from "@/lib/validation/master-data";
 
 const unique = { field: "code", message: "A project with this code already exists." };
 
 export async function createProject(input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "projects:create",
     schema: projectSchema,
     input,
     unique,
@@ -19,7 +20,8 @@ export async function createProject(input: unknown) {
 }
 
 export async function updateProject(id: string, input: unknown) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "projects:edit",
     schema: projectSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -29,7 +31,8 @@ export async function updateProject(id: string, input: unknown) {
 }
 
 export async function deleteProject(id: string) {
-  return masterDataMutation({
+  return runMutation({
+    requirement: "projects:delete",
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Project deleted.",

@@ -5,13 +5,25 @@ import type { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { canManageMasterData } from "@/lib/permissions";
-import { getSession } from "@/lib/session";
+import type { Permission } from "@/lib/permissions";
+import { type AuthContext, authorizeAction } from "@/lib/session";
+
+/** Thrown from a mutation to return a specific message to the user. */
+export class ActionError extends Error {
+  constructor(
+    message: string,
+    readonly fieldErrors?: Record<string, string>,
+  ) {
+    super(message);
+  }
+}
 
 type MutationOptions<S extends z.ZodType> = {
+  /** Permission required, or "super_admin" for administration. */
+  requirement: Permission | "super_admin";
   schema: S;
   input: unknown;
-  run: (data: z.output<S>) => Promise<unknown>;
+  run: (data: z.output<S>, context: AuthContext) => Promise<unknown>;
   success: string;
   /** The field covered by a unique constraint, for duplicate errors. */
   unique?: { field: string; message: string };
@@ -20,11 +32,12 @@ type MutationOptions<S extends z.ZodType> = {
 };
 
 /**
- * Runs a master-data write: verifies the session and role on the server,
- * validates the input with Zod, maps database errors to user-facing
- * messages and refreshes the page on success.
+ * Runs a write from a Server Action: verifies the session, account status
+ * and permission on the server, validates the input with Zod, maps errors to
+ * user-facing messages and refreshes the page on success.
  */
-export async function masterDataMutation<S extends z.ZodType>({
+export async function runMutation<S extends z.ZodType>({
+  requirement,
   schema,
   input,
   run,
@@ -32,13 +45,8 @@ export async function masterDataMutation<S extends z.ZodType>({
   unique,
   refreshPage = true,
 }: MutationOptions<S>): Promise<ActionResult> {
-  const session = await getSession();
-  if (!session) {
-    return { ok: false, message: "Your session has expired. Please sign in again." };
-  }
-  if (!canManageMasterData(session.user.role)) {
-    return { ok: false, message: "You do not have permission to change master data." };
-  }
+  const authorization = await authorizeAction(requirement);
+  if (!authorization.ok) return authorization.result;
 
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
@@ -51,7 +59,7 @@ export async function masterDataMutation<S extends z.ZodType>({
   }
 
   try {
-    await run(parsed.data);
+    await run(parsed.data, authorization.context);
   } catch (error) {
     return toErrorResult(error, unique);
   }
@@ -64,6 +72,9 @@ function toErrorResult(
   error: unknown,
   unique: MutationOptions<z.ZodType>["unique"],
 ): ActionResult {
+  if (error instanceof ActionError) {
+    return { ok: false, message: error.message, fieldErrors: error.fieldErrors };
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002" && unique) {
       return {

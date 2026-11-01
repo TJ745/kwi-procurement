@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { KeyRound, Pencil, Plus } from "lucide-react";
 import { createContext, useContext, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ export function useFormDialog() {
   return context;
 }
 
+const ICONS = { edit: Pencil, password: KeyRound };
+
 type FormDialogProps = {
   mode: "create" | "edit";
   title: string;
@@ -30,6 +32,8 @@ type FormDialogProps = {
   /** Accessible label for the edit trigger, e.g. "Edit project ABC". */
   triggerLabel: string;
   size?: "default" | "lg";
+  /** Icon for the edit-mode trigger (a key, as icons can't cross the server boundary). */
+  icon?: keyof typeof ICONS;
   children: React.ReactNode;
 };
 
@@ -39,9 +43,11 @@ export function FormDialog({
   description,
   triggerLabel,
   size = "default",
+  icon = "edit",
   children,
 }: FormDialogProps) {
   const [open, setOpen] = useState(false);
+  const Icon = ICONS[icon];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -54,7 +60,7 @@ export function FormDialog({
         <DialogTrigger
           render={<Button variant="ghost" size="icon-sm" aria-label={triggerLabel} />}
         >
-          <Pencil />
+          <Icon />
         </DialogTrigger>
       )}
       <DialogContent

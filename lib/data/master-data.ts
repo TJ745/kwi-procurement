@@ -3,13 +3,13 @@ import "server-only";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { type ListParams, paginate } from "@/lib/data/list-params";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requirePermission } from "@/lib/session";
 
 const contains = (query: string) =>
   ({ contains: query, mode: "insensitive" }) as const;
 
 export async function listProjects({ query, page }: ListParams) {
-  await requireUser();
+  await requirePermission("projects:view");
   const where: Prisma.ProjectWhereInput = query
     ? { OR: [{ code: contains(query) }, { name: contains(query) }] }
     : {};
@@ -21,7 +21,7 @@ export async function listProjects({ query, page }: ListParams) {
 }
 
 export async function listDepartments({ query, page }: ListParams) {
-  await requireUser();
+  await requirePermission("departments:view");
   const where: Prisma.DepartmentWhereInput = query
     ? { name: contains(query) }
     : {};
@@ -34,7 +34,7 @@ export async function listDepartments({ query, page }: ListParams) {
 }
 
 export async function listCategories({ query, page }: ListParams) {
-  await requireUser();
+  await requirePermission("categories:view");
   const where: Prisma.CategoryWhereInput = query
     ? { name: contains(query) }
     : {};
@@ -47,7 +47,7 @@ export async function listCategories({ query, page }: ListParams) {
 }
 
 export async function listSuppliers({ query, page }: ListParams) {
-  await requireUser();
+  await requirePermission("suppliers:view");
   const where: Prisma.SupplierWhereInput = query
     ? {
         OR: [
@@ -69,6 +69,6 @@ export async function listSuppliers({ query, page }: ListParams) {
 }
 
 export async function getSupplier(id: string) {
-  await requireUser();
+  await requirePermission("suppliers:view");
   return prisma.supplier.findUnique({ where: { id } });
 }

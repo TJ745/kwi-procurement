@@ -24,10 +24,19 @@ is run. The command never promotes an existing ordinary user to Super Admin.
 
 ## Access control
 
-- Public sign-up is disabled; accounts are provisioned by administrators.
-- `user.role` (`super_admin` | `user`) is stored in the database and can never be set through Better Auth endpoints (`input: false`).
-- `proxy.ts` only performs an optimistic redirect when no session cookie exists. Authorization is enforced on the server by `requireUser()` / `requireSuperAdmin()` in `lib/session.ts`, which every page (and future Server Action) calls.
-- Users, Roles and Settings require Super Admin; other users receive a 403 page and do not see these links.
+- Public sign-up is disabled. The Super Admin (the single `.env`-managed account) creates users in **Users** with a temporary password; users must choose their own password at first sign-in.
+- **Roles** are custom roles with a View/Create/Edit/Delete permission matrix per module (`lib/permissions.ts`). The Super Admin always has full access and cannot be edited, deactivated or reassigned from the UI.
+- Users, Roles and Settings are restricted to the Super Admin.
+- Users are deactivated, never deleted: deactivation signs them out and blocks sign-in.
+- `proxy.ts` only performs an optimistic redirect when no session cookie exists. Authorization is enforced on the server by `requireUser()` / `requirePermission()` / `requireSuperAdmin()` in `lib/session.ts` for pages, and `runMutation()` in `lib/actions/run-mutation.ts` for every Server Action. Roles, status and permissions are read from the database on every request.
+- Better Auth endpoints the app does not use (self-service profile, email and password changes, password reset) are disabled so they cannot bypass these rules.
+
+## Settings
+
+- **Company profile**: name, address, VAT, CR, phone, email and logo (PNG/JPEG/WebP, ≤ 512 KB).
+- **Regional**: default currency, time zone and date format (dates across the app follow these).
+- **Security**: session duration (fixed lifetime from sign-in, 1–720 hours) and minimum password length (8–128).
+- **Document numbering**: prefix, digits, next number, year in the number and yearly restart for MR, PO, Payment Request and GRN. `allocateDocumentNumber()` in `lib/numbering.ts` assigns numbers atomically for the procurement modules.
 
 ## Scripts
 

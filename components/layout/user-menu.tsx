@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut } from "lucide-react";
+import Link from "next/link";
 import { useTransition } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,6 +22,8 @@ type UserMenuProps = {
   name: string;
   email: string;
   roleLabel: string;
+  /** False for the Super Admin, whose password is managed in .env. */
+  canChangePassword: boolean;
 };
 
 function getInitials(name: string) {
@@ -32,7 +35,7 @@ function getInitials(name: string) {
     .join("");
 }
 
-export function UserMenu({ name, email, roleLabel }: UserMenuProps) {
+export function UserMenu({ name, email, roleLabel, canChangePassword }: UserMenuProps) {
   const [isSigningOut, startSignOut] = useTransition();
 
   return (
@@ -67,6 +70,12 @@ export function UserMenu({ name, email, roleLabel }: UserMenuProps) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {canChangePassword && (
+          <DropdownMenuItem render={<Link href="/change-password" />}>
+            <KeyRound />
+            Change password
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           disabled={isSigningOut}
           onClick={() => startSignOut(() => signOutAction())}

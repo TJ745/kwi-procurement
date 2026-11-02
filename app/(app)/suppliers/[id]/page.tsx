@@ -18,6 +18,7 @@ import { deleteSupplierFromDetail, updateSupplier } from "@/lib/actions/supplier
 import { getSupplier } from "@/lib/data/master-data";
 import { requirePermission } from "@/lib/session";
 import { formatIban, toSupplierFormValues } from "@/lib/supplier-format";
+import { paymentTermLabel } from "@/lib/validation/master-data";
 
 export const metadata: Metadata = { title: "Supplier" };
 
@@ -96,6 +97,7 @@ export default async function Page({ params }: PageProps<"/suppliers/[id]">) {
               </div>
               <Detail label="Email" value={supplier.email} />
               <Detail label="Telephone" value={supplier.telephone} />
+              <Detail label="Payment terms" value={paymentTermLabel(supplier.paymentTerm, supplier.creditDays)} />
             </dl>
           </CardContent>
         </Card>

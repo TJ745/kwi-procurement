@@ -1,6 +1,8 @@
 export const PAGE_SIZE = 20;
+/** Upper bound for print views, which list every matching row. */
+export const PRINT_LIMIT = 5000;
 
-export type ListParams = { query: string; page: number };
+export type ListParams = { query: string; page: number; pageSize?: number };
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -24,16 +26,23 @@ export type Paginated<T> = {
 
 /** Counts first so an out-of-range page clamps to the last page. */
 export async function paginate<T>(
-  page: number,
+  paging: number | { page: number; pageSize?: number },
   count: () => Promise<number>,
   find: (args: { skip: number; take: number }) => Promise<T[]>,
 ): Promise<Paginated<T>> {
+  const page = typeof paging === "number" ? paging : paging.page;
+  const pageSize = (typeof paging === "number" ? undefined : paging.pageSize) ?? PAGE_SIZE;
   const total = await count();
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, pageCount);
   const items =
     total === 0
       ? []
-      : await find({ skip: (current - 1) * PAGE_SIZE, take: PAGE_SIZE });
-  return { items, total, page: current, pageCount, pageSize: PAGE_SIZE };
+      : await find({ skip: (current - 1) * pageSize, take: pageSize });
+  return { items, total, page: current, pageCount, pageSize };
+}
+
+/** List parameters for a print view: every matching row on one page. */
+export function printParams(params: ListParams): ListParams {
+  return { ...params, page: 1, pageSize: PRINT_LIMIT };
 }

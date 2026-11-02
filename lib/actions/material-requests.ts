@@ -74,6 +74,7 @@ async function allocateFreeNumber(tx: Prisma.TransactionClient, timeZone: string
 export async function createMaterialRequest(input: unknown) {
   return runMutation({
     requirement: "material_requests:create",
+    audit: { entity: "material_request", action: "create" },
     schema: materialRequestSchema,
     input,
     success: "Material request created.",
@@ -102,6 +103,7 @@ export async function createMaterialRequest(input: unknown) {
 export async function updateMaterialRequest(id: string, input: unknown) {
   return runMutation({
     requirement: "material_requests:edit",
+    audit: { entity: "material_request", action: "update" },
     schema: materialRequestSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     success: "Material request updated.",
@@ -128,6 +130,7 @@ const statusSchema = z.enum(MATERIAL_REQUEST_STATUSES);
 export async function setMaterialRequestStatus(id: string, status: string) {
   return runMutation({
     requirement: "material_requests:status",
+    audit: { entity: "material_request", action: "status" },
     schema: z.object({ id: recordIdSchema, status: statusSchema }),
     input: { id, status },
     success: "Status updated.",
@@ -163,6 +166,7 @@ async function deleteUnlessApproved(id: string) {
 export async function deleteMaterialRequest(id: string) {
   return runMutation({
     requirement: "material_requests:delete",
+    audit: { entity: "material_request", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Material request deleted.",
@@ -174,6 +178,7 @@ export async function deleteMaterialRequest(id: string) {
 export async function deleteMaterialRequestFromDetail(id: string) {
   return runMutation({
     requirement: "material_requests:delete",
+    audit: { entity: "material_request", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Material request deleted.",

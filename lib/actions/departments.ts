@@ -11,6 +11,7 @@ const unique = { field: "name", message: "A department with this name already ex
 export async function createDepartment(input: unknown) {
   return runMutation({
     requirement: "departments:create",
+    audit: { entity: "department", action: "create" },
     schema: departmentSchema,
     input,
     unique,
@@ -22,6 +23,7 @@ export async function createDepartment(input: unknown) {
 export async function updateDepartment(id: string, input: unknown) {
   return runMutation({
     requirement: "departments:edit",
+    audit: { entity: "department", action: "update" },
     schema: departmentSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -33,6 +35,7 @@ export async function updateDepartment(id: string, input: unknown) {
 export async function deleteDepartment(id: string) {
   return runMutation({
     requirement: "departments:delete",
+    audit: { entity: "department", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Department deleted.",

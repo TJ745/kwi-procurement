@@ -191,6 +191,11 @@ model Project {
   @@map("project")
 }
 
+enum SupplierPaymentTerm {
+  CASH
+  CREDIT
+}
+
 model Supplier {
   id            String   @id @default(cuid())
   name          String
@@ -204,6 +209,9 @@ model Supplier {
   contactNumber String?
   email         String?
   telephone     String?
+  // Cash or credit supplier; credit days only apply to credit suppliers.
+  paymentTerm   SupplierPaymentTerm @default(CASH)
+  creditDays    Int?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   materialRequests MaterialRequest[]
@@ -512,4 +520,37 @@ model GoodsReceiptLine {
   @@index([purchaseOrderLineId])
   @@index([departmentId])
   @@map("goods_receipt_line")
+}
+
+// ---------------------------------------------------------------------------
+// Audit log (Super Admin only). Append-only: a database trigger rejects any
+// UPDATE or DELETE (see migration 20261103120000_audit_log). No foreign keys,
+// so entries survive whatever happens to the records they describe.
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  // Who acted (copied at the time). Null actor = system or unknown user.
+  actorId     String?
+  actorName   String?
+  actorEmail  String?
+  // e.g. "create", "update", "delete", "status", "sign_in", "sign_in_failed".
+  action      String
+  // e.g. "purchase_order", "user", "settings", "auth".
+  entityType  String
+  entityId    String?
+  // Human-readable record name at the time, e.g. "PO-2026-0003".
+  entityLabel String?
+  summary     String
+  // [{ field, label, from, to }] for field-level changes.
+  changes     Json?
+  ipAddress   String?
+  userAgent   String?
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([action])
+  @@map("audit_log")
 }

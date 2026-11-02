@@ -11,6 +11,7 @@ const unique = { field: "code", message: "A project with this code already exist
 export async function createProject(input: unknown) {
   return runMutation({
     requirement: "projects:create",
+    audit: { entity: "project", action: "create" },
     schema: projectSchema,
     input,
     unique,
@@ -22,6 +23,7 @@ export async function createProject(input: unknown) {
 export async function updateProject(id: string, input: unknown) {
   return runMutation({
     requirement: "projects:edit",
+    audit: { entity: "project", action: "update" },
     schema: projectSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -33,6 +35,7 @@ export async function updateProject(id: string, input: unknown) {
 export async function deleteProject(id: string) {
   return runMutation({
     requirement: "projects:delete",
+    audit: { entity: "project", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Project deleted.",

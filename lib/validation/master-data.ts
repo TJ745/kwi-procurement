@@ -59,7 +59,23 @@ export const supplierSchema = z.object({
   contactNumber: optionalPhone("Contact number"),
   email: optionalEmail("Email"),
   telephone: optionalPhone("Telephone"),
+  paymentTerm: z.enum(["CASH", "CREDIT"], { message: "Choose cash or credit." }),
+  // Optional for credit suppliers; ignored for cash suppliers.
+  creditDays: z
+    .string()
+    .trim()
+    .regex(/^(\d{1,3})?$/, "Enter a whole number of days (0–999)."),
 });
+
+export const SUPPLIER_PAYMENT_TERMS = [
+  { value: "CASH", label: "Cash" },
+  { value: "CREDIT", label: "Credit" },
+] as const;
+
+export function paymentTermLabel(term: string, creditDays?: number | null) {
+  if (term === "CREDIT") return creditDays ? `Credit (${creditDays} days)` : "Credit";
+  return "Cash";
+}
 
 export type ProjectInput = z.infer<typeof projectSchema>;
 export type DepartmentInput = z.infer<typeof departmentSchema>;

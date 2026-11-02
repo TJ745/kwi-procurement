@@ -44,6 +44,7 @@ async function assertPasswordPolicy(password: string, field: string) {
 export async function createUser(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "user", action: "create" },
     schema: createUserSchema,
     input,
     unique,
@@ -76,6 +77,7 @@ export async function createUser(input: unknown) {
           },
         }),
       ]);
+      return { id: userId };
     },
   });
 }
@@ -83,6 +85,7 @@ export async function createUser(input: unknown) {
 export async function updateUser(id: string, input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "user", action: "update" },
     schema: userSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -97,6 +100,7 @@ export async function updateUser(id: string, input: unknown) {
 export async function resetUserPassword(id: string, input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "user", action: "password_reset" },
     schema: resetPasswordSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     success: "Password reset. The user must choose a new password at next sign-in.",
@@ -127,6 +131,7 @@ export async function resetUserPassword(id: string, input: unknown) {
 export async function setUserActive(id: string, active: boolean) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "user", action: (data) => (data.active ? "activate" : "deactivate") },
     schema: z.object({ id: recordIdSchema, active: z.boolean() }),
     input: { id, active },
     success: active ? "User reactivated." : "User deactivated and signed out.",

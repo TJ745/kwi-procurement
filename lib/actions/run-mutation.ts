@@ -4,6 +4,8 @@ import { refresh } from "next/cache";
 import type { z } from "zod";
 
 import type { ActionResult } from "@/lib/action-result";
+import { diffSnapshots, requestMeta, writeAudit } from "@/lib/audit";
+import { AUDIT_ENTITIES, type AuditEntity, loadSnapshot } from "@/lib/audit-snapshots";
 import { Prisma } from "@/lib/generated/prisma/client";
 import type { Permission } from "@/lib/permissions";
 import { type AuthContext, authorizeAction } from "@/lib/session";
@@ -29,6 +31,26 @@ type MutationOptions<S extends z.ZodType> = {
   unique?: { field: string; message: string };
   /** Set to false when the client navigates away after success. */
   refreshPage?: boolean;
+  /** Record the change in the audit log (field-level, before → after). */
+  audit?: AuditOptions<z.output<S>>;
+};
+
+type AuditOptions<D> = {
+  entity: AuditEntity;
+  /** "create" | "update" | "delete" | "status" | other verbs, or derived from the input. */
+  action: string | ((data: D) => string);
+  /** Record id; defaults to `data.id` (or the created record's id for "create"). */
+  id?: (data: D) => string;
+};
+
+const VERBS: Record<string, string> = {
+  create: "Created",
+  update: "Updated",
+  delete: "Deleted",
+  status: "Changed status of",
+  password_reset: "Reset the password of",
+  activate: "Reactivated",
+  deactivate: "Deactivated",
 };
 
 /**
@@ -44,6 +66,7 @@ export async function runMutation<S extends z.ZodType>({
   success,
   unique,
   refreshPage = true,
+  audit,
 }: MutationOptions<S>): Promise<ActionResult> {
   const authorization = await authorizeAction(requirement);
   if (!authorization.ok) return authorization.result;
@@ -59,9 +82,14 @@ export async function runMutation<S extends z.ZodType>({
     return { ok: false, message: "Please correct the highlighted fields.", fieldErrors };
   }
 
+  const data = parsed.data;
+  const auditAction = audit && (typeof audit.action === "function" ? audit.action(data) : audit.action);
+  const existingId = audit && auditAction !== "create" ? (audit.id?.(data) ?? (data as { id?: string }).id) : undefined;
+  const before = audit && existingId ? await loadSnapshot(audit.entity, existingId) : null;
+
   let value: unknown;
   try {
-    value = await run(parsed.data, authorization.context);
+    value = await run(data, authorization.context);
   } catch (error) {
     return toErrorResult(error, unique);
   }
@@ -71,6 +99,35 @@ export async function runMutation<S extends z.ZodType>({
     typeof value === "object" && value !== null && "id" in value && typeof value.id === "string"
       ? value.id
       : undefined;
+
+  if (audit && auditAction) {
+    const recordId = existingId ?? audit.id?.(data) ?? id;
+    const after = recordId && auditAction !== "delete" ? await loadSnapshot(audit.entity, recordId) : null;
+    const changes = diffSnapshots(before, after);
+    // Saving without any actual change isn't an event.
+    if (auditAction === "create" || auditAction === "delete" || changes.length > 0) {
+      const { user } = authorization.context;
+      const label = after?.label ?? before?.label ?? null;
+      const name = AUDIT_ENTITIES[audit.entity];
+      await writeAudit({
+        actor: { id: user.id, name: user.name, email: user.email },
+        action: auditAction,
+        entityType: audit.entity,
+        entityId: recordId ?? null,
+        entityLabel: label,
+        summary: `${VERBS[auditAction] ?? auditAction} ${
+          audit.entity === "settings"
+            ? "system settings"
+            : audit.entity === "document_sequence"
+              ? `document numbering for ${label ?? "a document type"}`
+              : `${name.toLowerCase()}${label ? ` ${label}` : ""}`
+        }`,
+        changes,
+        ...(await requestMeta()),
+      });
+    }
+  }
+
   return { ok: true, message: success, ...(id && { id }) };
 }
 

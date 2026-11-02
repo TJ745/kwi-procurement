@@ -28,6 +28,7 @@ function saveSettings(data: Parameters<typeof prisma.appSettings.update>[0]["dat
 export async function updateCompanySettings(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: companySettingsSchema,
     input,
     success: "Company profile saved.",
@@ -46,6 +47,7 @@ export async function updateCompanySettings(input: unknown) {
 export async function updateRegionalSettings(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: regionalSettingsSchema,
     input,
     success: "Regional settings saved.",
@@ -56,6 +58,7 @@ export async function updateRegionalSettings(input: unknown) {
 export async function updateSecuritySettings(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: securitySettingsSchema,
     input,
     success: "Security settings saved. The session duration applies to new sign-ins.",
@@ -70,6 +73,7 @@ export async function updateSecuritySettings(input: unknown) {
 export async function updatePurchaseOrderDefaults(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: purchaseOrderDefaultsSchema,
     input,
     success: "Purchase order defaults saved. They apply to new purchase orders.",
@@ -86,6 +90,7 @@ const documentTypeSchema = z.enum(DOCUMENT_TYPES.map((item) => item.type));
 export async function updateDocumentSequence(type: string, input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "document_sequence", action: "update", id: (data) => data.type },
     schema: documentSequenceSchema.extend({ type: documentTypeSchema }),
     input: { ...(input as object), type },
     success: "Numbering saved.",
@@ -124,6 +129,7 @@ function detectImageType(bytes: Uint8Array) {
 export async function uploadCompanyLogo(formData: FormData) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: z.object({ file: z.instanceof(File, { message: "Choose an image file." }) }),
     input: { file: formData.get("file") },
     success: "Logo uploaded.",
@@ -141,6 +147,7 @@ export async function uploadCompanyLogo(formData: FormData) {
 export async function removeCompanyLogo() {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
     schema: z.object({}),
     input: {},
     success: "Logo removed.",

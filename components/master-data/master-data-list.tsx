@@ -1,8 +1,10 @@
-import { SearchX } from "lucide-react";
+import { Printer, SearchX } from "lucide-react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/empty-state";
 import { ListPagination } from "@/components/master-data/list-pagination";
 import { SearchInput } from "@/components/master-data/search-input";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ListParams, Paginated } from "@/lib/data/list-params";
 import type { NavItem } from "@/lib/navigation";
@@ -20,6 +22,8 @@ type MasterDataListProps = {
   toolbar?: React.ReactNode;
   /** Filters beyond the search box that are active (affects the empty state). */
   filters?: Record<string, string>;
+  /** Print view path; defaults to /print + the list's path. */
+  printPath?: string;
   children: React.ReactNode;
 };
 
@@ -34,8 +38,12 @@ export function MasterDataList({
   searchPlaceholder,
   toolbar,
   filters = {},
+  printPath = `/print${item.href}`,
   children,
 }: MasterDataListProps) {
+  const printQuery = new URLSearchParams(filters);
+  if (params.query) printQuery.set("q", params.query);
+  const printHref = printQuery.size ? `${printPath}?${printQuery}` : printPath;
   const isEmpty = result.total === 0;
   const isFiltered = Boolean(params.query) || Object.keys(filters).length > 0;
 
@@ -58,6 +66,15 @@ export function MasterDataList({
       <div className="flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center">
         <SearchInput placeholder={searchPlaceholder} />
         {toolbar}
+        <Link
+          href={printHref}
+          target="_blank"
+          rel="noopener"
+          className={buttonVariants({ variant: "outline", className: "sm:ml-auto" })}
+        >
+          <Printer />
+          Print list
+        </Link>
       </div>
       {isEmpty ? (
         <div className="p-4">

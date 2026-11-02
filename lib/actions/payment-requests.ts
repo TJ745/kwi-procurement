@@ -96,6 +96,7 @@ async function allocateFreeNumber(tx: Prisma.TransactionClient, timeZone: string
 export async function createPaymentRequest(purchaseOrderId: string, input: unknown) {
   return runMutation({
     requirement: "payment_requests:create",
+    audit: { entity: "payment_request", action: "create" },
     schema: paymentRequestSchema.and(z.object({ purchaseOrderId: z.string().max(64) })),
     input: { ...(input as object), purchaseOrderId },
     success: "Payment request created.",
@@ -140,6 +141,7 @@ export async function createPaymentRequest(purchaseOrderId: string, input: unkno
 export async function updatePaymentRequest(id: string, input: unknown) {
   return runMutation({
     requirement: "payment_requests:edit",
+    audit: { entity: "payment_request", action: "update" },
     schema: paymentRequestSchema.and(z.object({ id: recordIdSchema })),
     input: { ...(input as object), id },
     success: "Payment request updated.",
@@ -181,6 +183,7 @@ export async function updatePaymentRequest(id: string, input: unknown) {
 export async function setPaymentRequestStatus(id: string, status: string) {
   return runMutation({
     requirement: "payment_requests:status",
+    audit: { entity: "payment_request", action: "status" },
     schema: z.object({ id: recordIdSchema, status: z.enum(PAYMENT_REQUEST_STATUSES) }),
     input: { id, status },
     success: "Status updated.",
@@ -217,6 +220,7 @@ async function deleteUnlessLocked(id: string) {
 export async function deletePaymentRequest(id: string) {
   return runMutation({
     requirement: "payment_requests:delete",
+    audit: { entity: "payment_request", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Payment request deleted.",
@@ -228,6 +232,7 @@ export async function deletePaymentRequest(id: string) {
 export async function deletePaymentRequestFromDetail(id: string) {
   return runMutation({
     requirement: "payment_requests:delete",
+    audit: { entity: "payment_request", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Payment request deleted.",

@@ -47,6 +47,7 @@ export const PERMISSION_MODULES = [
     href: "/grn",
     actions: [...CRUD, "status"],
   },
+  { key: "reports", label: "Reports", href: "/reports", actions: ["view"] },
 ] as const satisfies readonly {
   key: string;
   label: string;

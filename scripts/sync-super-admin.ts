@@ -24,6 +24,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "@/lib/password";
+import { writeAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
 
@@ -104,6 +105,14 @@ async function main() {
         },
       }),
     ]);
+    await writeAudit({
+      actor: { id: null, name: "System (CLI)", email: null },
+      action: "create",
+      entityType: "user",
+      entityId: userId,
+      entityLabel: email,
+      summary: `Created Super Admin ${email} from .env (npm run sync-super-admin)`,
+    });
     console.log(`Super Admin created: ${email}`);
     return;
   }
@@ -156,6 +165,14 @@ async function main() {
     nameChanged && "name",
     passwordChanged && "password",
   ].filter(Boolean);
+  await writeAudit({
+    actor: { id: null, name: "System (CLI)", email: null },
+    action: "update",
+    entityType: "user",
+    entityId: user.id,
+    entityLabel: email,
+    summary: `Updated Super Admin from .env: ${changes.join(", ")}`,
+  });
   console.log(`Super Admin updated: ${changes.join(", ")}.`);
   if (passwordChanged || emailChanged) {
     console.log("Existing Super Admin sessions were signed out.");

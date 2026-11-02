@@ -89,6 +89,7 @@ async function allocateFreeNumber(tx: Prisma.TransactionClient, timeZone: string
 export async function createGrn(purchaseOrderId: string, input: unknown) {
   return runMutation({
     requirement: "grns:create",
+    audit: { entity: "grn", action: "create" },
     schema: grnSchema.and(z.object({ purchaseOrderId: recordIdSchema })),
     input: { ...(input as object), purchaseOrderId },
     success: "Goods received note created.",
@@ -125,6 +126,7 @@ export async function createGrn(purchaseOrderId: string, input: unknown) {
 export async function updateGrn(id: string, input: unknown) {
   return runMutation({
     requirement: "grns:edit",
+    audit: { entity: "grn", action: "update" },
     schema: grnSchema.and(z.object({ id: recordIdSchema })),
     input: { ...(input as object), id },
     success: "Goods received note updated.",
@@ -150,6 +152,7 @@ export async function updateGrn(id: string, input: unknown) {
 export async function setGrnStatus(id: string, status: string) {
   return runMutation({
     requirement: "grns:status",
+    audit: { entity: "grn", action: "status" },
     schema: z.object({ id: recordIdSchema, status: z.enum(GRN_STATUSES) }),
     input: { id, status },
     success: "Status updated.",
@@ -174,6 +177,7 @@ async function deleteUnlessLocked(id: string) {
 export async function deleteGrn(id: string) {
   return runMutation({
     requirement: "grns:delete",
+    audit: { entity: "grn", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Goods received note deleted.",
@@ -185,6 +189,7 @@ export async function deleteGrn(id: string) {
 export async function deleteGrnFromDetail(id: string) {
   return runMutation({
     requirement: "grns:delete",
+    audit: { entity: "grn", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Goods received note deleted.",

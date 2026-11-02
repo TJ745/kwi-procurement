@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   PackageCheck,
+  ScrollText,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -114,6 +115,12 @@ export const ADMINISTRATION: NavItem[] = [
     href: "/settings",
     icon: Settings,
     description: "System-wide configuration.",
+  },
+  {
+    title: "Audit log",
+    href: "/audit-log",
+    icon: ScrollText,
+    description: "Who did what and when: every change, sign-in and administration action.",
   },
 ];
 

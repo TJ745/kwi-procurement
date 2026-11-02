@@ -19,7 +19,7 @@ export function parseStatusFilter(value: string | string[] | undefined) {
 }
 
 export async function listMaterialRequests(
-  { query, page }: ListParams,
+  { query, page, pageSize }: ListParams,
   status: MaterialRequestStatus | undefined,
 ) {
   await requirePermission("material_requests:view");
@@ -36,7 +36,7 @@ export async function listMaterialRequests(
     }),
   };
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.materialRequest.count({ where }),
     (args) =>
       prisma.materialRequest.findMany({

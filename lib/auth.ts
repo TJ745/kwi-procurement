@@ -2,9 +2,10 @@ import "server-only";
 
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 
+import { requestMeta, writeAudit } from "@/lib/audit";
 import {
   PASSWORD_ABSOLUTE_MIN_LENGTH,
   PASSWORD_MAX_LENGTH,
@@ -77,6 +78,41 @@ export const auth = betterAuth({
         },
       },
     },
+  },
+  hooks: {
+    // Audit successful and failed email sign-ins (Super Admin › Audit log).
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-in/email") return;
+      const returned = ctx.context.returned;
+      const typedEmail = typeof ctx.body?.email === "string" ? ctx.body.email.trim().toLowerCase().slice(0, 254) : null;
+      const meta = await requestMeta(ctx.headers ?? ctx.request?.headers);
+      if (isAPIError(returned)) {
+        const known = typedEmail
+          ? await prisma.user.findUnique({ where: { email: typedEmail }, select: { id: true, name: true } })
+          : null;
+        await writeAudit({
+          actor: { id: known?.id ?? null, name: known?.name ?? null, email: typedEmail },
+          action: "sign_in_failed",
+          entityType: "auth",
+          entityId: known?.id ?? null,
+          entityLabel: typedEmail,
+          summary: `Failed sign-in${typedEmail ? ` for ${typedEmail}` : ""}: ${returned.message || "rejected"}`,
+          ...meta,
+        });
+        return;
+      }
+      const user = (returned as { user?: { id: string; name: string; email: string } } | undefined)?.user;
+      if (!user) return;
+      await writeAudit({
+        actor: { id: user.id, name: user.name, email: user.email },
+        action: "sign_in",
+        entityType: "auth",
+        entityId: user.id,
+        entityLabel: user.email,
+        summary: `Signed in`,
+        ...meta,
+      });
+    }),
   },
   // Account changes go through the app's own Server Actions, which apply the
   // configured password policy and permission checks.

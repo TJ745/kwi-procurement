@@ -28,12 +28,15 @@ function toSupplierData(input: SupplierInput) {
     contactNumber: orNull(input.contactNumber),
     email: orNull(input.email.toLowerCase()),
     telephone: orNull(input.telephone),
+    paymentTerm: input.paymentTerm,
+    creditDays: input.paymentTerm === "CREDIT" && input.creditDays !== "" ? Number(input.creditDays) : null,
   };
 }
 
 export async function createSupplier(input: unknown) {
   return runMutation({
     requirement: "suppliers:create",
+    audit: { entity: "supplier", action: "create" },
     schema: supplierSchema,
     input,
     unique,
@@ -45,6 +48,7 @@ export async function createSupplier(input: unknown) {
 export async function updateSupplier(id: string, input: unknown) {
   return runMutation({
     requirement: "suppliers:edit",
+    audit: { entity: "supplier", action: "update" },
     schema: supplierSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -57,6 +61,7 @@ export async function updateSupplier(id: string, input: unknown) {
 export async function deleteSupplier(id: string) {
   return runMutation({
     requirement: "suppliers:delete",
+    audit: { entity: "supplier", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Supplier deleted.",
@@ -68,6 +73,7 @@ export async function deleteSupplier(id: string) {
 export async function deleteSupplierFromDetail(id: string) {
   return runMutation({
     requirement: "suppliers:delete",
+    audit: { entity: "supplier", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Supplier deleted.",

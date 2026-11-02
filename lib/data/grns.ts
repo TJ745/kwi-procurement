@@ -38,7 +38,7 @@ export function parseGrnStatus(value: string | string[] | undefined) {
     : undefined;
 }
 
-export async function listGrns({ query, page }: ListParams, status: GoodsReceiptStatus | undefined) {
+export async function listGrns({ query, page, pageSize }: ListParams, status: GoodsReceiptStatus | undefined) {
   await requirePermission("grns:view");
   const where: Prisma.GoodsReceiptWhereInput = {
     ...(status && { status }),
@@ -54,7 +54,7 @@ export async function listGrns({ query, page }: ListParams, status: GoodsReceipt
     }),
   };
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.goodsReceipt.count({ where }),
     (args) =>
       prisma.goodsReceipt.findMany({

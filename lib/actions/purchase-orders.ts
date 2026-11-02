@@ -106,6 +106,7 @@ const createSchema = purchaseOrderSchema.extend({
 export async function createPurchaseOrder(materialRequestId: string, input: unknown) {
   return runMutation({
     requirement: "purchase_orders:create",
+    audit: { entity: "purchase_order", action: "create" },
     schema: createSchema,
     input: { ...(input as object), materialRequestId },
     success: "Purchase order created.",
@@ -154,6 +155,7 @@ export async function createPurchaseOrder(materialRequestId: string, input: unkn
 export async function updatePurchaseOrder(id: string, input: unknown) {
   return runMutation({
     requirement: "purchase_orders:edit",
+    audit: { entity: "purchase_order", action: "update" },
     schema: purchaseOrderSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     success: "Purchase order updated.",
@@ -220,6 +222,7 @@ export async function updatePurchaseOrder(id: string, input: unknown) {
 export async function setPurchaseOrderStatus(id: string, status: string) {
   return runMutation({
     requirement: "purchase_orders:status",
+    audit: { entity: "purchase_order", action: "status" },
     schema: z.object({ id: recordIdSchema, status: z.enum(PURCHASE_ORDER_STATUSES) }),
     input: { id, status },
     success: "Status updated.",
@@ -258,6 +261,7 @@ async function deleteUnlessLocked(id: string) {
 export async function deletePurchaseOrder(id: string) {
   return runMutation({
     requirement: "purchase_orders:delete",
+    audit: { entity: "purchase_order", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Purchase order deleted.",
@@ -269,6 +273,7 @@ export async function deletePurchaseOrder(id: string) {
 export async function deletePurchaseOrderFromDetail(id: string) {
   return runMutation({
     requirement: "purchase_orders:delete",
+    audit: { entity: "purchase_order", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Purchase order deleted.",

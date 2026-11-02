@@ -21,6 +21,7 @@ function toRoleData(input: z.infer<typeof roleSchema>) {
 export async function createRole(input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "role", action: "create" },
     schema: roleSchema,
     input,
     unique,
@@ -32,6 +33,7 @@ export async function createRole(input: unknown) {
 export async function updateRole(id: string, input: unknown) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "role", action: "update" },
     schema: roleSchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -43,6 +45,7 @@ export async function updateRole(id: string, input: unknown) {
 export async function deleteRole(id: string) {
   return runMutation({
     requirement: "super_admin",
+    audit: { entity: "role", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Role deleted.",

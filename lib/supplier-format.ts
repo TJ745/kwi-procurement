@@ -14,6 +14,8 @@ export function toSupplierFormValues(supplier: Supplier): SupplierInput {
     contactNumber: supplier.contactNumber ?? "",
     email: supplier.email ?? "",
     telephone: supplier.telephone ?? "",
+    paymentTerm: supplier.paymentTerm,
+    creditDays: supplier.creditDays?.toString() ?? "",
   };
 }
 

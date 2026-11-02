@@ -19,7 +19,7 @@ export function parsePurchaseOrderStatus(value: string | string[] | undefined) {
 }
 
 export async function listPurchaseOrders(
-  { query, page }: ListParams,
+  { query, page, pageSize }: ListParams,
   status: PurchaseOrderStatus | undefined,
 ) {
   await requirePermission("purchase_orders:view");
@@ -38,7 +38,7 @@ export async function listPurchaseOrders(
     }),
   };
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.purchaseOrder.count({ where }),
     (args) =>
       prisma.purchaseOrder.findMany({

@@ -1,6 +1,7 @@
 "use server";
 
 import type { ActionResult } from "@/lib/action-result";
+import { requestMeta, writeAudit } from "@/lib/audit";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
@@ -65,5 +66,14 @@ export async function changeOwnPassword(input: unknown): Promise<ActionResult> {
     }),
   ]);
 
+  await writeAudit({
+    actor: { id: context.user.id, name: context.user.name, email: context.user.email },
+    action: "password_change",
+    entityType: "user",
+    entityId: context.user.id,
+    entityLabel: context.user.email,
+    summary: context.user.mustChangePassword ? "Replaced temporary password" : "Changed own password",
+    ...(await requestMeta()),
+  });
   return { ok: true, message: "Password changed." };
 }

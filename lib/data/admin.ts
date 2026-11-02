@@ -8,7 +8,7 @@ import { requireSuperAdmin } from "@/lib/session";
 const contains = (query: string) =>
   ({ contains: query, mode: "insensitive" }) as const;
 
-export async function listUsers({ query, page }: ListParams) {
+export async function listUsers({ query, page, pageSize }: ListParams) {
   await requireSuperAdmin();
   const where: Prisma.UserWhereInput = query
     ? {
@@ -20,7 +20,7 @@ export async function listUsers({ query, page }: ListParams) {
       }
     : {};
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.user.count({ where }),
     (args) =>
       prisma.user.findMany({
@@ -53,11 +53,11 @@ export async function listRoleOptions() {
   return roles.map((role) => ({ value: role.id, label: role.name }));
 }
 
-export async function listRoles({ query, page }: ListParams) {
+export async function listRoles({ query, page, pageSize }: ListParams) {
   await requireSuperAdmin();
   const where: Prisma.RoleWhereInput = query ? { name: contains(query) } : {};
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.role.count({ where }),
     (args) =>
       prisma.role.findMany({

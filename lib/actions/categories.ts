@@ -11,6 +11,7 @@ const unique = { field: "name", message: "A category with this name already exis
 export async function createCategory(input: unknown) {
   return runMutation({
     requirement: "categories:create",
+    audit: { entity: "category", action: "create" },
     schema: categorySchema,
     input,
     unique,
@@ -22,6 +23,7 @@ export async function createCategory(input: unknown) {
 export async function updateCategory(id: string, input: unknown) {
   return runMutation({
     requirement: "categories:edit",
+    audit: { entity: "category", action: "update" },
     schema: categorySchema.extend({ id: recordIdSchema }),
     input: { ...(input as object), id },
     unique,
@@ -33,6 +35,7 @@ export async function updateCategory(id: string, input: unknown) {
 export async function deleteCategory(id: string) {
   return runMutation({
     requirement: "categories:delete",
+    audit: { entity: "category", action: "delete" },
     schema: z.object({ id: recordIdSchema }),
     input: { id },
     success: "Category deleted.",

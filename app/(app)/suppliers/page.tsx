@@ -16,10 +16,15 @@ import {
 } from "@/components/ui/table";
 import { createSupplier, deleteSupplier, updateSupplier } from "@/lib/actions/suppliers";
 import { parseListParams } from "@/lib/data/list-params";
-import { listSuppliers } from "@/lib/data/master-data";
+import { listSuppliers, parseSupplierTerm } from "@/lib/data/master-data";
 import { getNavItem } from "@/lib/navigation";
 import { requirePermission } from "@/lib/session";
 import { toSupplierFormValues } from "@/lib/supplier-format";
+import { paymentTermLabel } from "@/lib/validation/master-data";
+import { StatusFilter } from "@/components/status/status-filter";
+import { Badge } from "@/components/ui/badge";
+
+const TERM_LABELS = { CASH: "Cash", CREDIT: "Credit" };
 
 export const metadata: Metadata = { title: "Suppliers" };
 
@@ -31,8 +36,10 @@ function Muted({ value }: { value: string | null }) {
 
 export default async function Page({ searchParams }: PageProps<"/suppliers">) {
   const { can } = await requirePermission("suppliers:view");
-  const params = parseListParams(await searchParams);
-  const result = await listSuppliers(params);
+  const raw = await searchParams;
+  const params = parseListParams(raw);
+  const term = parseSupplierTerm(raw.term);
+  const result = await listSuppliers(params, term);
   const canCreate = can("suppliers:create");
   const canEdit = can("suppliers:edit");
   const canDelete = can("suppliers:delete");
@@ -59,6 +66,8 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
         canCreate={canCreate}
         createLabel={CREATE_LABEL}
         searchPlaceholder="Search name, VAT, CR, contact or email"
+        toolbar={<StatusFilter statuses={["CASH", "CREDIT"]} labels={TERM_LABELS} param="term" allLabel="All payment terms" />}
+        filters={term ? { term } : {}}
       >
         <Table>
           <TableHeader>
@@ -66,6 +75,7 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
               <TableHead className="pl-4">Name</TableHead>
               <TableHead className="hidden md:table-cell">VAT</TableHead>
               <TableHead className="hidden lg:table-cell">CR</TableHead>
+              <TableHead>Terms</TableHead>
               <TableHead className="hidden md:table-cell">Contact</TableHead>
               <TableHead className="hidden xl:table-cell">Email</TableHead>
               {(canEdit || canDelete) && (
@@ -91,6 +101,11 @@ export default async function Page({ searchParams }: PageProps<"/suppliers">) {
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <Muted value={supplier.cr} />
+                </TableCell>
+                <TableCell>
+                  <Badge variant={supplier.paymentTerm === "CREDIT" ? "secondary" : "outline"}>
+                    {paymentTermLabel(supplier.paymentTerm, supplier.creditDays)}
+                  </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {supplier.contactName || supplier.contactNumber ? (

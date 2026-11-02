@@ -20,7 +20,7 @@ export function parsePaymentRequestStatus(value: string | string[] | undefined) 
 }
 
 export async function listPaymentRequests(
-  { query, page }: ListParams,
+  { query, page, pageSize }: ListParams,
   status: PaymentRequestStatus | undefined,
 ) {
   await requirePermission("payment_requests:view");
@@ -39,7 +39,7 @@ export async function listPaymentRequests(
     }),
   };
   return paginate(
-    page,
+    { page, pageSize },
     () => prisma.paymentRequest.count({ where }),
     (args) =>
       prisma.paymentRequest.findMany({

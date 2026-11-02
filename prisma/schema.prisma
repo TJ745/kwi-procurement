@@ -32,6 +32,7 @@ model User {
   sessions           Session[]
   accounts           Account[]
   materialRequests   MaterialRequest[]
+  purchaseOrders     PurchaseOrder[]
   notifications      Notification[]
 
   @@index([roleId])
@@ -127,6 +128,9 @@ model AppSettings {
   dateFormat           String   @default("d MMM yyyy")
   sessionDurationHours Int      @default(168)
   minPasswordLength    Int      @default(12)
+  // Purchase order defaults.
+  defaultVatRate       Decimal  @default(0) @db.Decimal(5, 2)
+  purchaseOrderTerms   String?
   updatedAt            DateTime @updatedAt
 
   @@map("app_settings")
@@ -178,6 +182,7 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   materialRequests MaterialRequest[]
+  purchaseOrders   PurchaseOrder[]
 
   @@map("project")
 }
@@ -198,6 +203,7 @@ model Supplier {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   materialRequests MaterialRequest[]
+  purchaseOrders   PurchaseOrder[]
 
   @@map("supplier")
 }
@@ -208,6 +214,7 @@ model Department {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   materialRequests MaterialRequest[]
+  purchaseOrders   PurchaseOrder[]
 
   @@map("department")
 }
@@ -218,6 +225,7 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   materialRequests MaterialRequest[]
+  purchaseOrders   PurchaseOrder[]
 
   @@map("category")
 }
@@ -251,6 +259,8 @@ model MaterialRequest {
   createdById  String
   createdBy    User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
   lines        MaterialRequestLine[]
+  // Set once a PO has been raised from this request (one PO per MR).
+  purchaseOrder PurchaseOrder?
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
 
@@ -277,4 +287,82 @@ model MaterialRequestLine {
 
   @@unique([materialRequestId, lineNo])
   @@map("material_request_line")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  ISSUED
+  CLOSED
+}
+
+model PurchaseOrder {
+  id                    String              @id @default(cuid())
+  // Assigned from Settings > Document numbering when the order is created.
+  number                String              @unique @db.Citext
+  orderDate             DateTime            @db.Date
+  status                PurchaseOrderStatus @default(DRAFT)
+  // Source request, when the PO was raised from an approved MR.
+  materialRequestId     String?             @unique
+  materialRequest       MaterialRequest?    @relation(fields: [materialRequestId], references: [id], onDelete: Restrict)
+  projectId             String
+  project               Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  // Shown as "Ordered by".
+  departmentId          String
+  department            Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  // Shown as the PO "Subject".
+  categoryId            String
+  category              Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  deliverTo             String
+  // Supplier, plus the details as issued on this PO (editable, not live).
+  supplierId            String
+  supplier              Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplierName          String
+  supplierAddress       String?
+  supplierContactName   String?
+  supplierContactNumber String?
+  supplierEmail         String?
+  supplierTelephone     String?
+  supplierVat           String?
+  quotationRef          String?
+  // Amounts in `currency`, rounded to its minor units; computed on the server.
+  currency              String
+  subtotal              Decimal             @db.Decimal(18, 3)
+  discount              Decimal             @default(0) @db.Decimal(18, 3)
+  vatRate               Decimal             @db.Decimal(5, 2)
+  vatAmount             Decimal             @db.Decimal(18, 3)
+  total                 Decimal             @db.Decimal(18, 3)
+  terms                 String?
+  createdById           String
+  createdBy             User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  lines                 PurchaseOrderLine[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([projectId])
+  @@index([departmentId])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([orderDate])
+  @@map("purchase_order")
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  // Sr No, 1-based and contiguous.
+  lineNo          Int
+  name            String
+  unit            String
+  quantity        Decimal       @db.Decimal(14, 2)
+  unitPrice       Decimal       @db.Decimal(18, 3)
+  total           Decimal       @db.Decimal(18, 3)
+
+  @@unique([purchaseOrderId, lineNo])
+  @@map("purchase_order_line")
 }

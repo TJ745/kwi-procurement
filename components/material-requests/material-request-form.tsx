@@ -64,6 +64,9 @@ export function MaterialRequestForm({
     defaultValues,
     action,
     onSuccess: (result) => {
+      // Pages stay mounted in the background between visits (Cache
+      // Components / Activity), so clear the saved values first.
+      form.reset();
       router.push(result.id ? `/material-requests/${result.id}` : "/material-requests");
     },
   });

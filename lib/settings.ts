@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AppSettings } from "@/lib/generated/prisma/client";
+import { type AppSettings, Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type Settings = Omit<AppSettings, "companyLogo">;
@@ -21,6 +21,8 @@ const DEFAULTS: Settings = {
   dateFormat: "d MMM yyyy",
   sessionDurationHours: 168,
   minPasswordLength: 12,
+  defaultVatRate: new Prisma.Decimal(0),
+  purchaseOrderTerms: null,
   updatedAt: new Date(0),
 };
 

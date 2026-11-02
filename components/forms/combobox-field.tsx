@@ -28,6 +28,8 @@ type ComboboxFieldProps<T extends FieldValues> = {
   emptyText?: string;
   description?: string;
   required?: boolean;
+  /** Called after the user picks an option ("" when cleared). */
+  onSelect?: (value: string) => void;
 };
 
 /** Searchable single-select whose form value is the option's `value` ("" when empty). */
@@ -40,6 +42,7 @@ export function ComboboxField<T extends FieldValues>({
   emptyText = "No matches.",
   description,
   required,
+  onSelect,
 }: ComboboxFieldProps<T>) {
   return (
     <Controller
@@ -61,7 +64,10 @@ export function ComboboxField<T extends FieldValues>({
             <Combobox.Root
               items={options}
               value={selected}
-              onValueChange={(option: Option | null) => field.onChange(option?.value ?? "")}
+              onValueChange={(option: Option | null) => {
+                field.onChange(option?.value ?? "");
+                onSelect?.(option?.value ?? "");
+              }}
               itemToStringLabel={(option: Option) => option.label}
               isItemEqualToValue={(a: Option, b: Option) => a.value === b.value}
               autoHighlight

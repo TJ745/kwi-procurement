@@ -29,6 +29,12 @@ export const PERMISSION_MODULES = [
     href: "/material-requests",
     actions: [...CRUD, "status"],
   },
+  {
+    key: "purchase_orders",
+    label: "Purchase Order",
+    href: "/purchase-orders",
+    actions: [...CRUD, "status"],
+  },
 ] as const satisfies readonly {
   key: string;
   label: string;

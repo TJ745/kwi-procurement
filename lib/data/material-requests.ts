@@ -67,6 +67,7 @@ export async function getMaterialRequest(id: string) {
       category: { select: { id: true, name: true } },
       supplier: { select: { id: true, name: true } },
       createdBy: { select: { name: true } },
+      purchaseOrder: { select: { id: true, number: true } },
       lines: { orderBy: { lineNo: "asc" } },
     },
   });

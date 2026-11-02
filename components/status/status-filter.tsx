@@ -4,13 +4,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import {
-  MATERIAL_REQUEST_STATUSES,
-  MATERIAL_REQUEST_STATUS_LABELS,
-} from "@/lib/validation/material-request";
 
 /** Keeps the selected status in the URL (`?status=`) and resets paging. */
-export function StatusFilter() {
+export function StatusFilter({
+  statuses,
+  labels,
+}: {
+  statuses: readonly string[];
+  labels: Record<string, string>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,9 +35,9 @@ export function StatusFilter() {
       className="w-full sm:w-44"
     >
       <NativeSelectOption value="">All statuses</NativeSelectOption>
-      {MATERIAL_REQUEST_STATUSES.map((status) => (
+      {statuses.map((status) => (
         <NativeSelectOption key={status} value={status}>
-          {MATERIAL_REQUEST_STATUS_LABELS[status]}
+          {labels[status]}
         </NativeSelectOption>
       ))}
     </NativeSelect>

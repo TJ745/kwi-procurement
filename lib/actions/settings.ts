@@ -10,6 +10,7 @@ import { getSettings } from "@/lib/settings";
 import {
   companySettingsSchema,
   documentSequenceSchema,
+  purchaseOrderDefaultsSchema,
   regionalSettingsSchema,
   securitySettingsSchema,
 } from "@/lib/validation/admin";
@@ -62,6 +63,20 @@ export async function updateSecuritySettings(input: unknown) {
       saveSettings({
         sessionDurationHours: Number(data.sessionDurationHours),
         minPasswordLength: Number(data.minPasswordLength),
+      }),
+  });
+}
+
+export async function updatePurchaseOrderDefaults(input: unknown) {
+  return runMutation({
+    requirement: "super_admin",
+    schema: purchaseOrderDefaultsSchema,
+    input,
+    success: "Purchase order defaults saved. They apply to new purchase orders.",
+    run: (data) =>
+      saveSettings({
+        defaultVatRate: data.defaultVatRate,
+        purchaseOrderTerms: orNull(data.purchaseOrderTerms),
       }),
   });
 }

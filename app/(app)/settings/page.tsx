@@ -5,6 +5,7 @@ import { LogoUpload } from "@/components/admin/logo-upload";
 import {
   CompanySettingsForm,
   DocumentSequenceForm,
+  PurchaseOrderDefaultsForm,
   RegionalSettingsForm,
   SecuritySettingsForm,
 } from "@/components/admin/settings-forms";
@@ -20,24 +21,18 @@ import {
   removeCompanyLogo,
   updateCompanySettings,
   updateDocumentSequence,
+  updatePurchaseOrderDefaults,
   updateRegionalSettings,
   updateSecuritySettings,
   uploadCompanyLogo,
 } from "@/lib/actions/settings";
+import { currencyOptions } from "@/lib/currencies";
 import { getEditableSettings } from "@/lib/data/admin";
 import { DOCUMENT_TYPES } from "@/lib/document-numbering";
 import { getNavItem } from "@/lib/navigation";
 import { requireSuperAdmin } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Settings" };
-
-function currencyOptions() {
-  const names = new Intl.DisplayNames(["en"], { type: "currency" });
-  return Intl.supportedValuesOf("currency").map((code) => ({
-    value: code,
-    label: `${code} — ${names.of(code) ?? code}`,
-  }));
-}
 
 function timeZoneOptions() {
   const zones = Intl.supportedValuesOf("timeZone");
@@ -117,6 +112,19 @@ export default async function Page() {
           defaultValues={{
             sessionDurationHours: String(s.sessionDurationHours),
             minPasswordLength: String(s.minPasswordLength),
+          }}
+        />
+      </Section>
+
+      <Section
+        title="Purchase order defaults"
+        description="Starting values for new purchase orders."
+      >
+        <PurchaseOrderDefaultsForm
+          action={updatePurchaseOrderDefaults}
+          defaultValues={{
+            defaultVatRate: s.defaultVatRate.toString(),
+            purchaseOrderTerms: s.purchaseOrderTerms ?? "",
           }}
         />
       </Section>

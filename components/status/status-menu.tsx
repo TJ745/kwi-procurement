@@ -14,27 +14,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ActionResult } from "@/lib/action-result";
-import {
-  MATERIAL_REQUEST_STATUSES,
-  MATERIAL_REQUEST_STATUS_LABELS,
-  type MaterialRequestStatusValue,
-} from "@/lib/validation/material-request";
-
-export function StatusMenu({
+export function StatusMenu<S extends string>({
   status,
+  statuses,
+  labels,
   action,
 }: {
-  status: MaterialRequestStatusValue;
-  action: (status: MaterialRequestStatusValue) => Promise<ActionResult>;
+  status: S;
+  statuses: readonly S[];
+  labels: Record<S, string>;
+  action: (status: S) => Promise<ActionResult>;
 }) {
   const [isPending, startTransition] = useTransition();
 
-  function change(next: MaterialRequestStatusValue) {
+  function change(next: S) {
     if (next === status) return;
     startTransition(async () => {
       try {
         const result = await action(next);
-        if (result.ok) toast.success(`Status changed to ${MATERIAL_REQUEST_STATUS_LABELS[next]}.`);
+        if (result.ok) toast.success(`Status changed to ${labels[next]}.`);
         else toast.error(result.message);
       } catch {
         toast.error("Could not reach the server. Please try again.");
@@ -52,9 +50,9 @@ export function StatusMenu({
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Set status</DropdownMenuLabel>
-          {MATERIAL_REQUEST_STATUSES.map((value) => (
+          {statuses.map((value) => (
             <DropdownMenuItem key={value} onClick={() => change(value)}>
-              <span className="flex-1">{MATERIAL_REQUEST_STATUS_LABELS[value]}</span>
+              <span className="flex-1">{labels[value]}</span>
               {value === status && <CheckIcon />}
             </DropdownMenuItem>
           ))}

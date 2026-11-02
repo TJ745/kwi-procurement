@@ -52,6 +52,34 @@ export async function GET(request: NextRequest) {
         })),
     );
   }
+  if (can("purchase_orders:view")) {
+    searches.push(
+      prisma.purchaseOrder
+        .findMany({
+          where: {
+            OR: [
+              { number: q },
+              { category: { name: q } },
+              { supplierName: q },
+              { quotationRef: q },
+              { project: { OR: [{ code: q }, { name: q }] } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          take: LIMIT,
+          select: { id: true, number: true, supplierName: true, category: { select: { name: true } } },
+        })
+        .then((rows) => ({
+          label: "Purchase orders",
+          results: rows.map((row) => ({
+            id: row.id,
+            title: row.number,
+            subtitle: `${row.supplierName} · ${row.category.name}`,
+            href: `/purchase-orders/${row.id}`,
+          })),
+        })),
+    );
+  }
   if (can("projects:view")) {
     searches.push(
       prisma.project

@@ -20,6 +20,8 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
     <div className="flex flex-col gap-6">
       <PageHeader title={`Edit ${request.number}`} description="Update the request details and item lines." />
       <MaterialRequestForm
+        // Remount when the request changed since this page was last shown.
+        key={request.updatedAt.getTime()}
         action={updateMaterialRequest.bind(null, request.id)}
         options={options}
         number={request.number}

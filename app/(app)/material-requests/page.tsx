@@ -4,8 +4,8 @@ import Link from "next/link";
 
 import { DeleteButton } from "@/components/master-data/delete-button";
 import { MasterDataList } from "@/components/master-data/master-data-list";
-import { StatusBadge } from "@/components/material-requests/status-badge";
-import { StatusFilter } from "@/components/material-requests/status-filter";
+import { StatusBadge } from "@/components/status/status-badge";
+import { StatusFilter } from "@/components/status/status-filter";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -21,6 +21,10 @@ import { parseListParams } from "@/lib/data/list-params";
 import { listMaterialRequests, parseStatusFilter } from "@/lib/data/material-requests";
 import { getNavItem } from "@/lib/navigation";
 import { requirePermission } from "@/lib/session";
+import {
+  MATERIAL_REQUEST_STATUSES,
+  MATERIAL_REQUEST_STATUS_LABELS,
+} from "@/lib/validation/material-request";
 
 export const metadata: Metadata = { title: "Material Requests" };
 
@@ -59,7 +63,7 @@ export default async function Page({ searchParams }: PageProps<"/material-reques
         canCreate={canCreate}
         createLabel={CREATE_LABEL}
         searchPlaceholder="Search number, project, department, category or supplier"
-        toolbar={<StatusFilter />}
+        toolbar={<StatusFilter statuses={MATERIAL_REQUEST_STATUSES} labels={MATERIAL_REQUEST_STATUS_LABELS} />}
         filters={status ? { status } : {}}
       >
         <Table>
@@ -106,7 +110,7 @@ export default async function Page({ searchParams }: PageProps<"/material-reques
                   {request._count.lines}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={request.status} />
+                  <StatusBadge status={request.status} label={MATERIAL_REQUEST_STATUS_LABELS[request.status]} />
                 </TableCell>
                 {(canEdit || canDelete) && (
                   <TableCell className="pr-4">

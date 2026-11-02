@@ -1,11 +1,11 @@
-import { ArrowLeft, Pencil, Printer } from "lucide-react";
+import { ArrowLeft, Pencil, Printer, ShoppingCart } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/master-data/delete-button";
-import { StatusBadge } from "@/components/material-requests/status-badge";
-import { StatusMenu } from "@/components/material-requests/status-menu";
+import { StatusBadge } from "@/components/status/status-badge";
+import { StatusMenu } from "@/components/status/status-menu";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -29,6 +29,10 @@ import {
 import { getMaterialRequest } from "@/lib/data/material-requests";
 import { formatQuantity } from "@/lib/format";
 import { requirePermission } from "@/lib/session";
+import {
+  MATERIAL_REQUEST_STATUSES,
+  MATERIAL_REQUEST_STATUS_LABELS,
+} from "@/lib/validation/material-request";
 
 export const metadata: Metadata = { title: "Material request" };
 
@@ -64,7 +68,7 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-mono text-2xl font-semibold tracking-tight">{request.number}</h1>
-            <StatusBadge status={request.status} />
+            <StatusBadge status={request.status} label={MATERIAL_REQUEST_STATUS_LABELS[request.status]} />
           </div>
           <p className="text-sm text-muted-foreground">
             Created by {request.createdBy.name} on {formatDate.dateTime(request.createdAt)}
@@ -81,7 +85,18 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
             Print PDF
           </a>
           {can("material_requests:status") && (
-            <StatusMenu status={request.status} action={setMaterialRequestStatus.bind(null, request.id)} />
+            <StatusMenu
+              status={request.status}
+              statuses={MATERIAL_REQUEST_STATUSES}
+              labels={MATERIAL_REQUEST_STATUS_LABELS}
+              action={setMaterialRequestStatus.bind(null, request.id)}
+            />
+          )}
+          {approved && !request.purchaseOrder && can("purchase_orders:create") && (
+            <Link href={`/purchase-orders/new?mr=${request.id}`} className={buttonVariants()}>
+              <ShoppingCart />
+              Create purchase order
+            </Link>
           )}
           {can("material_requests:edit") && (
             <Link href={`/material-requests/${request.id}/edit`} className={buttonVariants({ variant: "outline" })}>
@@ -114,6 +129,19 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
             <Detail label="Category" value={request.category.name} />
             <Detail label="Supplier" value={request.supplier?.name} />
             <Detail label="Last updated" value={formatDate.dateTime(request.updatedAt)} />
+            <Detail
+              label="Purchase order"
+              value={
+                request.purchaseOrder &&
+                (can("purchase_orders:view") ? (
+                  <Link href={`/purchase-orders/${request.purchaseOrder.id}`} className="font-mono font-medium underline-offset-4 hover:underline">
+                    {request.purchaseOrder.number}
+                  </Link>
+                ) : (
+                  <span className="font-mono">{request.purchaseOrder.number}</span>
+                ))
+              }
+            />
           </dl>
         </CardContent>
       </Card>

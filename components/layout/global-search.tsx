@@ -114,7 +114,7 @@ function SearchPanel({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onKeyDown={onKeyDown}
-        placeholder="Search requests, projects, suppliers…"
+        placeholder="Search requests, orders, projects, suppliers…"
         className="h-9 w-full rounded-lg border border-input bg-muted/40 pr-14 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
       />
       <span className="absolute top-1/2 right-2 -translate-y-1/2">

@@ -15,10 +15,12 @@ import { DATE_FORMATS } from "@/lib/format";
 import {
   type CompanySettingsInput,
   type DocumentSequenceInput,
+  type PurchaseOrderDefaultsInput,
   type RegionalSettingsInput,
   type SecuritySettingsInput,
   companySettingsSchema,
   documentSequenceSchema,
+  purchaseOrderDefaultsSchema,
   regionalSettingsSchema,
   securitySettingsSchema,
 } from "@/lib/validation/admin";
@@ -114,6 +116,34 @@ export function SecuritySettingsForm({
           label="Minimum password length"
           description="Applies to new and reset passwords (8–128). Existing passwords are not affected."
           inputMode="numeric"
+        />
+      </FieldGroup>
+      <SaveButton isSubmitting={form.formState.isSubmitting} isDirty={form.formState.isDirty} />
+    </form>
+  );
+}
+
+export function PurchaseOrderDefaultsForm({
+  defaultValues,
+  action,
+}: {
+  defaultValues: PurchaseOrderDefaultsInput;
+  action: (input: PurchaseOrderDefaultsInput) => Promise<ActionResult>;
+}) {
+  const { form, onSubmit } = useActionForm({ schema: purchaseOrderDefaultsSchema, defaultValues, action, resetOnSuccess: true });
+  const { control } = form;
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <FieldGroup>
+        <div className="sm:max-w-48">
+          <TextField control={control} name="defaultVatRate" label="Default VAT %" inputMode="decimal" />
+        </div>
+        <TextField
+          control={control}
+          name="purchaseOrderTerms"
+          label="Default Terms & Conditions"
+          description="New purchase orders start with this text; it can be adjusted on each PO."
+          multiline
         />
       </FieldGroup>
       <SaveButton isSubmitting={form.formState.isSubmitting} isDirty={form.formState.isDirty} />

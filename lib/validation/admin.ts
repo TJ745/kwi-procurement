@@ -123,6 +123,16 @@ export const documentSequenceSchema = z.object({
   nextNumber: wholeNumber("Next number", 1, 2_000_000_000),
 });
 
+export const purchaseOrderDefaultsSchema = z.object({
+  defaultVatRate: z
+    .string()
+    .trim()
+    .regex(/^\d{1,3}(\.\d{1,2})?$/, "Enter a VAT % with up to 2 decimals.")
+    .refine((value) => Number(value) <= 100, "VAT % cannot exceed 100."),
+  purchaseOrderTerms: trimmed("Terms & Conditions", 10_000),
+});
+
+export type PurchaseOrderDefaultsInput = z.infer<typeof purchaseOrderDefaultsSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsSchema>;
 export type RegionalSettingsInput = z.infer<typeof regionalSettingsSchema>;
 export type SecuritySettingsInput = z.infer<typeof securitySettingsSchema>;

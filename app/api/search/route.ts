@@ -80,6 +80,61 @@ export async function GET(request: NextRequest) {
         })),
     );
   }
+  if (can("payment_requests:view")) {
+    searches.push(
+      prisma.paymentRequest
+        .findMany({
+          where: {
+            OR: [
+              { number: q },
+              { inFavorOf: q },
+              { description: q },
+              { invoiceNo: q },
+              { purchaseOrder: { number: q } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          take: LIMIT,
+          select: { id: true, number: true, inFavorOf: true, purchaseOrder: { select: { number: true } } },
+        })
+        .then((rows) => ({
+          label: "Payment requests",
+          results: rows.map((row) => ({
+            id: row.id,
+            title: row.number,
+            subtitle: [row.inFavorOf, row.purchaseOrder?.number].filter(Boolean).join(" · "),
+            href: `/payment-requests/${row.id}`,
+          })),
+        })),
+    );
+  }
+  if (can("grns:view")) {
+    searches.push(
+      prisma.goodsReceipt
+        .findMany({
+          where: {
+            OR: [
+              { number: q },
+              { supplierName: q },
+              { invoiceNo: q },
+              { purchaseOrder: { number: q } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          take: LIMIT,
+          select: { id: true, number: true, supplierName: true, purchaseOrder: { select: { number: true } } },
+        })
+        .then((rows) => ({
+          label: "Goods received notes",
+          results: rows.map((row) => ({
+            id: row.id,
+            title: row.number,
+            subtitle: `${row.supplierName} · ${row.purchaseOrder.number}`,
+            href: `/grn/${row.id}`,
+          })),
+        })),
+    );
+  }
   if (can("projects:view")) {
     searches.push(
       prisma.project

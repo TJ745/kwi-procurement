@@ -1,4 +1,4 @@
-import { ArrowLeft, Pencil, Printer } from "lucide-react";
+import { ArrowLeft, PackageCheck, Pencil, Printer, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -26,9 +26,16 @@ import {
   deletePurchaseOrderFromDetail,
   setPurchaseOrderStatus,
 } from "@/lib/actions/purchase-orders";
+import { listGrnsForPurchaseOrder } from "@/lib/data/grns";
+import { getPurchaseOrderBalance, listPaymentRequestsForPurchaseOrder } from "@/lib/data/payment-requests";
 import { getPurchaseOrder } from "@/lib/data/purchase-orders";
 import { formatQuantity } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { GRN_STATUS_LABELS, RECEIVABLE_PO_STATUSES } from "@/lib/grn";
+import {
+  PAYABLE_PO_STATUSES,
+  PAYMENT_REQUEST_STATUS_LABELS,
+} from "@/lib/payment-request-options";
 import { requirePermission } from "@/lib/session";
 import {
   LOCKED_PURCHASE_ORDER_STATUSES,
@@ -54,6 +61,16 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
   const { id } = await params;
   const order = await getPurchaseOrder(id);
   if (!order) notFound();
+  const [payments, balance, receipts] = await Promise.all([
+    listPaymentRequestsForPurchaseOrder(order.id),
+    getPurchaseOrderBalance(order.id),
+    listGrnsForPurchaseOrder(order.id),
+  ]);
+  const canReceive =
+    (RECEIVABLE_PO_STATUSES as readonly string[]).includes(order.status) && can("grns:create");
+  const payable = (PAYABLE_PO_STATUSES as readonly string[]).includes(order.status);
+  const canRequestPayment =
+    payable && can("payment_requests:create") && balance !== null && Number(balance.remaining) > 0;
   const locked = LOCKED_PURCHASE_ORDER_STATUSES.includes(order.status);
   const money = (value: { toString(): string }) => formatMoney(value, order.currency);
 
@@ -94,6 +111,18 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
               labels={PURCHASE_ORDER_STATUS_LABELS}
               action={setPurchaseOrderStatus.bind(null, order.id)}
             />
+          )}
+          {canReceive && (
+            <Link href={`/grn/new?po=${order.id}`} className={buttonVariants({ variant: "outline" })}>
+              <PackageCheck />
+              Create GRN
+            </Link>
+          )}
+          {canRequestPayment && (
+            <Link href={`/payment-requests/new?po=${order.id}`} className={buttonVariants()}>
+              <Wallet />
+              Create payment request
+            </Link>
           )}
           {can("purchase_orders:edit") && (
             <Link href={`/purchase-orders/${order.id}/edit`} className={buttonVariants({ variant: "outline" })}>
@@ -208,6 +237,66 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
           <div className="mt-1 flex justify-between border-t pt-2 text-base font-semibold"><dt>Grand total</dt><dd>{money(order.total)}</dd></div>
         </dl>
       </Card>
+
+      {can("grns:view") && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Goods received notes</CardTitle>
+            {!(RECEIVABLE_PO_STATUSES as readonly string[]).includes(order.status) && (
+              <CardDescription>Goods can be received once the order is approved or issued.</CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            {receipts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No goods received yet.</p>
+            ) : (
+              <ul className="flex flex-col divide-y">
+                {receipts.map((receipt) => (
+                  <li key={receipt.id} className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                    <Link href={`/grn/${receipt.id}`} className="font-mono text-sm font-medium underline-offset-4 hover:underline">
+                      {receipt.number}
+                    </Link>
+                    <span className="text-sm text-muted-foreground">{formatDate.calendarDate(receipt.receiptDate)}</span>
+                    <StatusBadge status={receipt.status} label={GRN_STATUS_LABELS[receipt.status]} />
+                    <span className="text-sm text-muted-foreground">{receipt._count.lines} items</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {can("payment_requests:view") && balance && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment requests</CardTitle>
+            <CardDescription>
+              Total {money(balance.total)} · requested {money(balance.requested)} · remaining{" "}
+              <span className="font-medium text-foreground">{money(balance.remaining)}</span>
+              {!payable && " · payment requests can be raised once the order is approved"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {payments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No payment requests yet.</p>
+            ) : (
+              <ul className="flex flex-col divide-y">
+                {payments.map((payment) => (
+                  <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                    <Link href={`/payment-requests/${payment.id}`} className="font-mono text-sm font-medium underline-offset-4 hover:underline">
+                      {payment.number}
+                    </Link>
+                    <span className="text-sm text-muted-foreground">{formatDate.calendarDate(payment.requestDate)}</span>
+                    <StatusBadge status={payment.status} label={PAYMENT_REQUEST_STATUS_LABELS[payment.status]} />
+                    <span className="text-sm tabular-nums">{money(payment.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

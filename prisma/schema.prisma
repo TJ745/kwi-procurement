@@ -33,6 +33,8 @@ model User {
   accounts           Account[]
   materialRequests   MaterialRequest[]
   purchaseOrders     PurchaseOrder[]
+  paymentRequests    PaymentRequest[]
+  goodsReceipts      GoodsReceipt[]
   notifications      Notification[]
 
   @@index([roleId])
@@ -183,6 +185,8 @@ model Project {
   updatedAt DateTime @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
+  paymentRequests  PaymentRequest[]
+  goodsReceipts    GoodsReceipt[]
 
   @@map("project")
 }
@@ -204,6 +208,7 @@ model Supplier {
   updatedAt     DateTime @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
+  paymentRequests  PaymentRequest[]
 
   @@map("supplier")
 }
@@ -215,6 +220,8 @@ model Department {
   updatedAt DateTime @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
+  goodsReceipts    GoodsReceipt[]
+  goodsReceiptLines GoodsReceiptLine[]
 
   @@map("department")
 }
@@ -338,6 +345,8 @@ model PurchaseOrder {
   createdById           String
   createdBy             User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
   lines                 PurchaseOrderLine[]
+  paymentRequests       PaymentRequest[]
+  goodsReceipts         GoodsReceipt[]
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
@@ -362,7 +371,145 @@ model PurchaseOrderLine {
   quantity        Decimal       @db.Decimal(14, 2)
   unitPrice       Decimal       @db.Decimal(18, 3)
   total           Decimal       @db.Decimal(18, 3)
+  receipts        GoodsReceiptLine[]
 
   @@unique([purchaseOrderId, lineNo])
   @@map("purchase_order_line")
+}
+
+enum PaymentRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum PaymentType {
+  BANK_TRANSFER
+  CHEQUE
+  PETTY_CASH
+}
+
+enum PaymentPriority {
+  NORMAL
+  URGENT
+  TOP_URGENT
+}
+
+model PaymentRequest {
+  id              String               @id @default(cuid())
+  // Assigned from Settings > Document numbering when the request is created.
+  number          String               @unique @db.Citext
+  requestDate     DateTime             @db.Date
+  status          PaymentRequestStatus @default(DRAFT)
+  // Source PO, if any. A PO can have several payment requests.
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?       @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  projectId       String
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  supplierId      String?
+  supplier        Supplier?            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  inFavorOf       String
+  description     String
+  // Ticked expense items, e.g. "material.raw_material" (see lib/payment-request-options.ts).
+  items           String[]
+  otherDetails    String?
+  paymentType     PaymentType
+  priority        PaymentPriority
+  currency        String
+  amount          Decimal              @db.Decimal(18, 3)
+  invoiceNo       String?
+  quotationNo     String?
+  createdById     String
+  createdBy       User                 @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([requestDate])
+  @@map("payment_request")
+}
+
+enum GoodsReceiptStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum DeliveryMethod {
+  AIR_FREIGHT
+  LOCAL_DELIVERY
+  PICK_UP
+}
+
+/// Goods Received Note. Raised from one PO; a PO can have several (partial deliveries).
+model GoodsReceipt {
+  id              String             @id @default(cuid())
+  // Assigned from Settings > Document numbering when the GRN is created.
+  number          String             @unique @db.Citext
+  receiptDate     DateTime           @db.Date
+  status          GoodsReceiptStatus @default(DRAFT)
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  // Copied from the PO when the GRN is created.
+  projectId       String
+  project         Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  // "Ordered by".
+  departmentId    String
+  department      Department         @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  // "From" (editable copy of the PO's supplier details).
+  supplierName    String
+  supplierAddress String?
+  invoiceNo       String?
+  deliveredBy     DeliveryMethod
+  remarks         String?
+  createdById     String
+  createdBy       User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  lines           GoodsReceiptLine[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([projectId])
+  @@index([departmentId])
+  @@index([createdById])
+  @@index([status])
+  @@index([receiptDate])
+  @@map("goods_receipt")
+}
+
+model GoodsReceiptLine {
+  id                  String            @id @default(cuid())
+  goodsReceiptId      String
+  goodsReceipt        GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLineId String
+  purchaseOrderLine   PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  // Sr No, 1-based and contiguous.
+  lineNo              Int
+  itemCode            String?
+  // Copied from the PO line.
+  description         String
+  unit                String
+  departmentId        String
+  department          Department        @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  // Quantities; outstanding/short/excess/accepted are computed on the server.
+  orderedQty          Decimal           @db.Decimal(14, 2)
+  // Ordered minus quantities accepted on earlier (non-rejected) GRNs, at save time.
+  outstandingQty      Decimal           @db.Decimal(14, 2)
+  receivedQty         Decimal           @db.Decimal(14, 2)
+  shortQty            Decimal           @db.Decimal(14, 2)
+  excessQty           Decimal           @db.Decimal(14, 2)
+  rejectedQty         Decimal           @db.Decimal(14, 2)
+  acceptedQty         Decimal           @db.Decimal(14, 2)
+
+  @@unique([goodsReceiptId, lineNo])
+  @@index([purchaseOrderLineId])
+  @@index([departmentId])
+  @@map("goods_receipt_line")
 }

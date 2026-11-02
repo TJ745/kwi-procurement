@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { ActionError, runMutation } from "@/lib/actions/run-mutation";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { computeTotals } from "@/lib/money";
+import { computeTotals, formatMoney } from "@/lib/money";
+import { lockPurchaseOrder, requestedAgainst } from "@/lib/payment-balance";
 import { allocateDocumentNumber } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
 import { recordIdSchema } from "@/lib/validation/master-data";
@@ -162,16 +163,56 @@ export async function updatePurchaseOrder(id: string, input: unknown) {
       const { header, lines } = toData(data);
       // Lines are replaced as a whole so Sr No stays contiguous. The source MR
       // link and the number are fixed at creation.
-      const [, , updated] = await prisma.$transaction([
-        prisma.purchaseOrder.findUniqueOrThrow({ where: { id }, select: { id: true } }),
-        prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } }),
-        prisma.purchaseOrder.update({
+      return prisma.$transaction(async (tx) => {
+        await lockPurchaseOrder(tx, id);
+        const current = await tx.purchaseOrder.findUniqueOrThrow({
+          where: { id },
+          select: { currency: true },
+        });
+        // Payment requests already raised must still fit within the order.
+        const requested = await requestedAgainst(tx, id);
+        if (requested.greaterThan(0)) {
+          if (header.currency !== current.currency) {
+            throw new ActionError("The currency can't change once payment requests exist for this order.", {
+              currency: "Locked by existing payment requests.",
+            });
+          }
+          if (requested.greaterThan(header.total)) {
+            throw new ActionError(
+              `The new total is below the ${formatMoney(requested.toString(), current.currency)} already requested for payment.`,
+            );
+          }
+        }
+        // Received goods reference the PO's lines: once a GRN exists, the items
+        // can't change (header fields still can).
+        if (await tx.goodsReceipt.count({ where: { purchaseOrderId: id } })) {
+          const existing = await tx.purchaseOrderLine.findMany({
+            where: { purchaseOrderId: id },
+            orderBy: { lineNo: "asc" },
+          });
+          const same =
+            existing.length === lines.length &&
+            existing.every(
+              (line, index) =>
+                line.name === lines[index].name &&
+                line.unit === lines[index].unit &&
+                line.quantity.equals(lines[index].quantity as string) &&
+                line.unitPrice.equals(lines[index].unitPrice as string),
+            );
+          if (!same) {
+            throw new ActionError(
+              "Goods have been received against this purchase order, so its items, quantities and prices can't be changed.",
+            );
+          }
+          return tx.purchaseOrder.update({ where: { id }, data: header, select: { id: true } });
+        }
+        await tx.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } });
+        return tx.purchaseOrder.update({
           where: { id },
           data: { ...header, lines: { createMany: { data: lines } } },
           select: { id: true },
-        }),
-      ]);
-      return updated;
+        });
+      }, TRANSACTION_OPTIONS);
     },
   });
 }
@@ -188,6 +229,18 @@ export async function setPurchaseOrderStatus(id: string, status: string) {
 }
 
 async function deleteUnlessLocked(id: string) {
+  const receipts = await prisma.goodsReceipt.count({ where: { purchaseOrderId: id } });
+  if (receipts > 0) {
+    throw new ActionError(
+      `This purchase order has ${receipts} goods received note${receipts === 1 ? "" : "s"}. Delete ${receipts === 1 ? "it" : "them"} first.`,
+    );
+  }
+  const payments = await prisma.paymentRequest.count({ where: { purchaseOrderId: id } });
+  if (payments > 0) {
+    throw new ActionError(
+      `This purchase order has ${payments} payment request${payments === 1 ? "" : "s"}. Delete ${payments === 1 ? "it" : "them"} first.`,
+    );
+  }
   // The status check is part of the delete, so a concurrent approval wins.
   const { count } = await prisma.purchaseOrder.deleteMany({
     where: { id, status: { notIn: [...LOCKED_PURCHASE_ORDER_STATUSES] } },

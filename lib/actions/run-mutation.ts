@@ -19,8 +19,8 @@ export class ActionError extends Error {
 }
 
 type MutationOptions<S extends z.ZodType> = {
-  /** Permission required, or "super_admin" for administration. */
-  requirement: Permission | "super_admin";
+  /** Permission required, "super_admin" for administration, or "signed_in". */
+  requirement: Permission | "super_admin" | "signed_in";
   schema: S;
   input: unknown;
   run: (data: z.output<S>, context: AuthContext) => Promise<unknown>;
@@ -52,20 +52,26 @@ export async function runMutation<S extends z.ZodType>({
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
-      const field = String(issue.path[0] ?? "");
+      // Full path, e.g. "lines.2.quantity", so nested fields get their own error.
+      const field = issue.path.map(String).join(".");
       if (field && !fieldErrors[field]) fieldErrors[field] = issue.message;
     }
     return { ok: false, message: "Please correct the highlighted fields.", fieldErrors };
   }
 
+  let value: unknown;
   try {
-    await run(parsed.data, authorization.context);
+    value = await run(parsed.data, authorization.context);
   } catch (error) {
     return toErrorResult(error, unique);
   }
 
   if (refreshPage) refresh();
-  return { ok: true, message: success };
+  const id =
+    typeof value === "object" && value !== null && "id" in value && typeof value.id === "string"
+      ? value.id
+      : undefined;
+  return { ok: true, message: success, ...(id && { id }) };
 }
 
 function toErrorResult(

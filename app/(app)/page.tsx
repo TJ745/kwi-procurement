@@ -14,10 +14,16 @@ import { requireUser } from "@/lib/session";
 
 export default async function DashboardPage() {
   const { user, can } = await requireUser();
-  const masterData = MASTER_DATA.filter((item) => {
+  const visible = (item: { href: string }) => {
     const permission = NAV_PERMISSIONS[item.href];
     return !permission || can(permission);
-  });
+  };
+  const masterData = MASTER_DATA.filter(visible);
+  const workflows = WORKFLOWS.filter(visible);
+  // Workflows without a permission entry have not been built yet.
+  const planned = Object.fromEntries(
+    WORKFLOWS.filter((item) => !NAV_PERMISSIONS[item.href]).map((item) => [item.href, "Planned"]),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,9 +59,9 @@ export default async function DashboardPage() {
         )}
         <ModuleList
           title="Procurement modules"
-          description="These workflows will be configured in upcoming phases."
-          items={WORKFLOWS}
-          badge="Planned"
+          description="Procurement workflows. Items marked Planned arrive in later phases."
+          items={workflows}
+          badges={planned}
         />
       </div>
     </div>

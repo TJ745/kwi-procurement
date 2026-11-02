@@ -31,6 +31,8 @@ model User {
   updatedAt          DateTime  @default(now()) @updatedAt
   sessions           Session[]
   accounts           Account[]
+  materialRequests   MaterialRequest[]
+  notifications      Notification[]
 
   @@index([roleId])
   @@map("user")
@@ -145,6 +147,24 @@ model DocumentSequence {
   @@map("document_sequence")
 }
 
+// In-app notifications shown in the header bell.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // e.g. "material_request.created" (see lib/notifications.ts).
+  type      String
+  title     String
+  body      String
+  // In-app path the notification opens, e.g. /material-requests/abc.
+  href      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@map("notification")
+}
+
 // ---------------------------------------------------------------------------
 // Master data
 // Citext columns make uniqueness case-insensitive (requires the citext
@@ -157,6 +177,7 @@ model Project {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  materialRequests MaterialRequest[]
 
   @@map("project")
 }
@@ -176,6 +197,7 @@ model Supplier {
   telephone     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  materialRequests MaterialRequest[]
 
   @@map("supplier")
 }
@@ -185,6 +207,7 @@ model Department {
   name      String   @unique @db.Citext
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  materialRequests MaterialRequest[]
 
   @@map("department")
 }
@@ -194,6 +217,64 @@ model Category {
   name      String   @unique @db.Citext
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  materialRequests MaterialRequest[]
 
   @@map("category")
+}
+
+// ---------------------------------------------------------------------------
+// Procurement workflows
+// ---------------------------------------------------------------------------
+
+enum MaterialRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model MaterialRequest {
+  id           String                @id @default(cuid())
+  // Assigned from Settings > Document numbering when the request is created.
+  number       String                @unique @db.Citext
+  requestDate  DateTime              @db.Date
+  status       MaterialRequestStatus @default(DRAFT)
+  projectId    String
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  // Shown as "Requested by".
+  departmentId String
+  department   Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  categoryId   String
+  category     Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  supplierId   String?
+  supplier     Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdById  String
+  createdBy    User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  lines        MaterialRequestLine[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([projectId])
+  @@index([departmentId])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([requestDate])
+  @@map("material_request")
+}
+
+model MaterialRequestLine {
+  id                String          @id @default(cuid())
+  materialRequestId String
+  materialRequest   MaterialRequest @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
+  // Sr No, 1-based and contiguous.
+  lineNo            Int
+  name              String
+  unit              String
+  quantity          Decimal         @db.Decimal(14, 2)
+  remarks           String?
+
+  @@unique([materialRequestId, lineNo])
+  @@map("material_request_line")
 }

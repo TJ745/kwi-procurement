@@ -11,17 +11,19 @@ type ListPaginationProps = {
   href: string;
   params: ListParams;
   result: Paginated<unknown>;
+  /** Other query parameters to keep, e.g. a status filter. */
+  extraParams?: Record<string, string>;
 };
 
-function pageHref(href: string, query: string, page: number) {
-  const params = new URLSearchParams();
+function pageHref(href: string, query: string, page: number, extra: Record<string, string> = {}) {
+  const params = new URLSearchParams(extra);
   if (query) params.set("q", query);
   if (page > 1) params.set("page", String(page));
   const search = params.toString();
   return search ? `${href}?${search}` : href;
 }
 
-export function ListPagination({ href, params, result }: ListPaginationProps) {
+export function ListPagination({ href, params, result, extraParams }: ListPaginationProps) {
   const { page, pageCount, pageSize, total, items } = result;
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const last = (page - 1) * pageSize + items.length;
@@ -35,7 +37,7 @@ export function ListPagination({ href, params, result }: ListPaginationProps) {
       {pageCount > 1 && (
         <nav aria-label="Pagination" className="flex items-center gap-2">
           <PageLink
-            href={pageHref(href, params.query, page - 1)}
+            href={pageHref(href, params.query, page - 1, extraParams)}
             disabled={page <= 1}
             label="Previous page"
           >
@@ -46,7 +48,7 @@ export function ListPagination({ href, params, result }: ListPaginationProps) {
             Page {page} of {pageCount}
           </span>
           <PageLink
-            href={pageHref(href, params.query, page + 1)}
+            href={pageHref(href, params.query, page + 1, extraParams)}
             disabled={page >= pageCount}
             label="Next page"
           >

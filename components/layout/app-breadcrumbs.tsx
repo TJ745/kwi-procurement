@@ -17,6 +17,9 @@ import { DASHBOARD, findNavEntry } from "@/lib/navigation";
 type Crumb = { label: string; href?: string };
 
 function buildCrumbs(pathname: string): Crumb[] {
+  if (pathname === "/profile") {
+    return [{ label: DASHBOARD.title, href: DASHBOARD.href }, { label: "Profile" }];
+  }
   const entry = findNavEntry(pathname);
   if (!entry || entry.item.href === DASHBOARD.href) {
     return [{ label: DASHBOARD.title }];
@@ -29,7 +32,12 @@ function buildCrumbs(pathname: string): Crumb[] {
   if (pathname === entry.item.href) {
     crumbs.push({ label: entry.item.title });
   } else {
-    crumbs.push({ label: entry.item.title, href: entry.item.href }, { label: "Details" });
+    const label = pathname.endsWith("/new")
+      ? "New"
+      : pathname.endsWith("/edit")
+        ? "Edit"
+        : "Details";
+    crumbs.push({ label: entry.item.title, href: entry.item.href }, { label });
   }
   return crumbs;
 }

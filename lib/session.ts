@@ -99,10 +99,11 @@ type ActionAuthorization =
 
 /**
  * Authorization for Server Actions, which return errors instead of
- * redirecting. Pass a permission, or "super_admin" for administration.
+ * redirecting. Pass a permission, "super_admin" for administration, or
+ * "signed_in" for the user's own data (e.g. their notifications).
  */
 export async function authorizeAction(
-  requirement: Permission | "super_admin",
+  requirement: Permission | "super_admin" | "signed_in",
 ): Promise<ActionAuthorization> {
   const context = await getAuthContext();
   if (!context) {
@@ -112,7 +113,11 @@ export async function authorizeAction(
     return { ok: false, result: { ok: false, message: "Change your temporary password before continuing." } };
   }
   const allowed =
-    requirement === "super_admin" ? context.isSuperAdmin : context.can(requirement);
+    requirement === "signed_in"
+      ? true
+      : requirement === "super_admin"
+        ? context.isSuperAdmin
+        : context.can(requirement);
   if (!allowed) {
     return { ok: false, result: { ok: false, message: "You do not have permission to perform this action." } };
   }

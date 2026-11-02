@@ -11,6 +11,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // API clients get a status code, not an HTML redirect.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const signInUrl = new URL("/sign-in", request.url);
   const { pathname, search } = request.nextUrl;
   if (pathname !== "/") {

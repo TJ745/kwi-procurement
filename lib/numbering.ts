@@ -7,6 +7,7 @@ import {
   formatDocumentNumber,
 } from "@/lib/document-numbering";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Allocates the next number for a document type inside the caller's
@@ -52,4 +53,21 @@ export async function allocateDocumentNumber(
   });
 
   return formatDocumentNumber(sequence, number, year);
+}
+
+/** The number the next allocation would produce, without reserving it. */
+export async function previewDocumentNumber(
+  type: DocumentType,
+  timeZone: string,
+  now = new Date(),
+) {
+  const sequence = await prisma.documentSequence.findUnique({ where: { type } });
+  if (!sequence) return null;
+  const year = new TZDate(now, timeZone).getFullYear();
+  const restart =
+    sequence.includeYear &&
+    sequence.resetYearly &&
+    sequence.counterYear !== null &&
+    sequence.counterYear !== year;
+  return formatDocumentNumber(sequence, restart ? 1 : sequence.nextNumber, year);
 }

@@ -9,9 +9,23 @@ export const DATE_FORMATS = [
   { value: "dd.MM.yyyy", label: "01.11.2026" },
 ] as const;
 
+const quantityFormat = new Intl.NumberFormat("en", { maximumFractionDigits: 2 });
+
+/** Quantities are exact decimals (Prisma Decimal / string); shows e.g. "2.55" or "3". */
+export function formatQuantity(value: { toString(): string }) {
+  return quantityFormat.format(Number(value.toString()));
+}
+
+/** A calendar date stored without time zone (Postgres `date`), as yyyy-MM-dd. */
+export function toIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
 export type DateFormatter = {
   date: (value: Date) => string;
   dateTime: (value: Date) => string;
+  /** A calendar date stored without time (Postgres `date`); never shifted by time zone. */
+  calendarDate: (value: Date) => string;
 };
 
 /** Formats dates in the configured time zone and date format. */
@@ -23,5 +37,6 @@ export function createDateFormatter(settings: {
   return {
     date: (value) => format(value, settings.dateFormat, options),
     dateTime: (value) => format(value, `${settings.dateFormat}, HH:mm`, options),
+    calendarDate: (value) => format(value, settings.dateFormat, { in: tz("UTC") }),
   };
 }

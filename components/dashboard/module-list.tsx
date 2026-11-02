@@ -15,10 +15,11 @@ type ModuleListProps = {
   title: string;
   description: string;
   items: NavItem[];
-  badge?: string;
+  /** Badge text per item href, e.g. { "/grn": "Planned" }. */
+  badges?: Record<string, string>;
 };
 
-export function ModuleList({ title, description, items, badge }: ModuleListProps) {
+export function ModuleList({ title, description, items, badges = {} }: ModuleListProps) {
   return (
     <Card>
       <CardHeader>
@@ -42,7 +43,7 @@ export function ModuleList({ title, description, items, badge }: ModuleListProps
                     {item.description}
                   </span>
                 </div>
-                {badge && <Badge variant="secondary">{badge}</Badge>}
+                {badges[item.href] && <Badge variant="secondary">{badges[item.href]}</Badge>}
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </Link>
             </li>

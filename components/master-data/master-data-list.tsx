@@ -16,6 +16,10 @@ type MasterDataListProps = {
   canCreate: boolean;
   createLabel: string;
   searchPlaceholder: string;
+  /** Extra toolbar controls, e.g. filters. */
+  toolbar?: React.ReactNode;
+  /** Filters beyond the search box that are active (affects the empty state). */
+  filters?: Record<string, string>;
   children: React.ReactNode;
 };
 
@@ -28,11 +32,14 @@ export function MasterDataList({
   canCreate,
   createLabel,
   searchPlaceholder,
+  toolbar,
+  filters = {},
   children,
 }: MasterDataListProps) {
   const isEmpty = result.total === 0;
+  const isFiltered = Boolean(params.query) || Object.keys(filters).length > 0;
 
-  if (isEmpty && !params.query) {
+  if (isEmpty && !isFiltered) {
     return (
       <EmptyState
         icon={item.icon}
@@ -48,21 +55,26 @@ export function MasterDataList({
 
   return (
     <Card className="gap-0 py-0">
-      <div className="border-b p-4">
+      <div className="flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center">
         <SearchInput placeholder={searchPlaceholder} />
+        {toolbar}
       </div>
       {isEmpty ? (
         <div className="p-4">
           <EmptyState
             icon={SearchX}
             title={`No ${noun} found`}
-            description={`Nothing matches “${params.query}”. Try a different search.`}
+            description={
+              params.query
+                ? `Nothing matches “${params.query}”. Try a different search or filter.`
+                : "Nothing matches the selected filter."
+            }
           />
         </div>
       ) : (
         children
       )}
-      <ListPagination href={item.href} params={params} result={result} />
+      <ListPagination href={item.href} params={params} result={result} extraParams={filters} />
     </Card>
   );
 }

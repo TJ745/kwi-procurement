@@ -41,7 +41,7 @@ async function ChangePassword() {
             <code>npm run sync-super-admin</code>.
           </p>
         ) : (
-          <ChangePasswordForm minPasswordLength={settings.minPasswordLength} forced={forced} />
+          <ChangePasswordForm minPasswordLength={settings.minPasswordLength} forced={forced} successHref="/" />
         )}
         {forced && (
           <form action={signOutAction} className="mt-4 text-center">

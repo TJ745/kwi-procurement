@@ -22,6 +22,7 @@ import {
   PERMISSION_ACTIONS,
   PERMISSION_ACTION_LABELS,
   PERMISSION_MODULES,
+  type Permission,
   normalizePermissions,
 } from "@/lib/permissions";
 import { requireSuperAdmin } from "@/lib/session";
@@ -34,7 +35,7 @@ const CREATE_LABEL = "New role";
 function summarize(permissions: string[]) {
   const granted = new Set(normalizePermissions(permissions));
   return PERMISSION_MODULES.flatMap((module) => {
-    const actions = PERMISSION_ACTIONS.filter((action) => granted.has(`${module.key}:${action}`));
+    const actions = PERMISSION_ACTIONS.filter((action) => granted.has(`${module.key}:${action}` as Permission));
     return actions.length
       ? [`${module.label}: ${actions.map((action) => PERMISSION_ACTION_LABELS[action]).join(", ")}`]
       : [];

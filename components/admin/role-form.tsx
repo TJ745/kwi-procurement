@@ -34,7 +34,7 @@ function toggle(current: Permission[], module: PermissionModule, action: string,
     next.add(key);
     next.add(`${module}:view`);
   } else if (action === "view") {
-    for (const each of PERMISSION_ACTIONS) next.delete(`${module}:${each}`);
+    for (const each of PERMISSION_ACTIONS) next.delete(`${module}:${each}` as Permission);
   } else {
     next.delete(key);
   }
@@ -87,6 +87,13 @@ export function RoleForm({
                       <TableCell className="pl-3 font-medium">{module.label}</TableCell>
                       {PERMISSION_ACTIONS.map((action) => {
                         const key = `${module.key}:${action}` as Permission;
+                        if (!(module.actions as readonly string[]).includes(action)) {
+                          return (
+                            <TableCell key={action} className="text-center text-muted-foreground">
+                              <span aria-hidden="true">—</span>
+                            </TableCell>
+                          );
+                        }
                         return (
                           <TableCell key={action} className="text-center">
                             <Checkbox
@@ -109,7 +116,7 @@ export function RoleForm({
         />
         <p className="text-xs text-muted-foreground">
           Users, Roles and Settings are always restricted to the Super Admin. Permissions for
-          procurement workflows will be added as each workflow is built.
+          further procurement workflows will be added as each workflow is built.
         </p>
       </FieldSet>
       <FormActions isSubmitting={form.formState.isSubmitting} />

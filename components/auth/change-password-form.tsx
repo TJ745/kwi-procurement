@@ -14,10 +14,13 @@ import { changePasswordSchema } from "@/lib/validation/admin";
 export function ChangePasswordForm({
   minPasswordLength,
   forced,
+  successHref,
 }: {
   minPasswordLength: number;
   /** True when an administrator set a temporary password. */
   forced: boolean;
+  /** Where to go after success; omit to stay on the page (e.g. Profile). */
+  successHref?: string;
 }) {
   const router = useRouter();
   const { form, onSubmit } = useActionForm({
@@ -25,7 +28,9 @@ export function ChangePasswordForm({
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
     action: changeOwnPassword,
     onSuccess: () => {
-      router.replace("/");
+      if (successHref) router.replace(successHref);
+      // Staying on the page: clear the password fields.
+      else form.reset();
       router.refresh();
     },
   });
@@ -55,8 +60,8 @@ export function ChangePasswordForm({
           autoComplete="new-password"
         />
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          {!forced && (
-            <Link href="/" className={buttonVariants({ variant: "outline" })}>
+          {!forced && successHref && (
+            <Link href={successHref} className={buttonVariants({ variant: "outline" })}>
               Cancel
             </Link>
           )}

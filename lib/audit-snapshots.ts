@@ -221,6 +221,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           companyEmail: field("Company email", r.companyEmail),
           // Only a description of the logo, never the image itself.
           companyLogo: field("Logo", r.companyLogo ? `${r.companyLogoType ?? "image"}, ${Math.round(r.companyLogo.length / 1024)} KB` : null),
+          printFooter: field("Print footer", r.printFooter ? `${r.printFooterType ?? "image"}, ${Math.round(r.printFooter.length / 1024)} KB` : null),
           currency: field("Default currency", r.currency),
           timeZone: field("Time zone", r.timeZone),
           dateFormat: field("Date format", r.dateFormat),

@@ -74,7 +74,7 @@ export async function getEditableSettings() {
   const [settings, sequences] = await Promise.all([
     prisma.appSettings.findUnique({
       where: { id: 1 },
-      omit: { companyLogo: true },
+      omit: { companyLogo: true, printFooter: true },
     }),
     prisma.documentSequence.findMany(),
   ]);

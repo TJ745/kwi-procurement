@@ -8,6 +8,7 @@ import { amountInWords } from "@/lib/amount-in-words";
 import { createDateFormatter } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { PAYMENT_REQUEST_STATUS_LABELS } from "@/lib/payment-request-options";
+import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
   }
 
   const { id } = await params;
-  const [request, logo] = await Promise.all([
+  const [request, images] = await Promise.all([
     prisma.paymentRequest.findUnique({
       where: { id },
       include: {
@@ -29,17 +30,12 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
         createdBy: { select: { name: true } },
       },
     }),
-    prisma.appSettings.findUnique({
-      where: { id: 1 },
-      select: { companyLogo: true, companyLogoType: true },
-    }),
+    loadPdfImages(),
   ]);
   if (!request) return new Response("Not found", { status: 404 });
 
   const { settings } = context;
   const formatDate = createDateFormatter(settings);
-  const logoFormat =
-    logo?.companyLogoType === "image/png" ? "png" : logo?.companyLogoType === "image/jpeg" ? "jpg" : null;
 
   const data: PaymentRequestPdfData = {
     company: {
@@ -49,10 +45,8 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
       cr: settings.companyCr,
       phone: settings.companyPhone,
       email: settings.companyEmail,
-      logo:
-        logo?.companyLogo && logoFormat
-          ? { data: Buffer.from(logo.companyLogo), format: logoFormat }
-          : null,
+      logo: images.logo,
+      footer: images.footer,
     },
     number: request.number,
     date: formatDate.calendarDate(request.requestDate),

@@ -2,12 +2,15 @@ import "server-only";
 
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { PDF_FOOTER_PADDING, PDF_FOOTER_TEXT_BOTTOM, PdfFooterImage } from "@/components/print/pdf-footer-image";
+
 import {
   OTHERS_ITEM,
   PAYMENT_ITEM_GROUPS,
   PAYMENT_PRIORITIES,
   PAYMENT_TYPES,
 } from "@/lib/payment-request-options";
+import type { PdfImage } from "@/lib/pdf-images";
 
 export type PaymentRequestPdfData = {
   company: {
@@ -17,7 +20,9 @@ export type PaymentRequestPdfData = {
     cr: string | null;
     phone: string | null;
     email: string | null;
-    logo: { data: Buffer; format: "png" | "jpg" } | null;
+    logo: PdfImage | null;
+    /** Uploaded print footer, drawn on every page. */
+    footer: PdfImage | null;
   };
   number: string;
   date: string;
@@ -108,7 +113,7 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
 
   return (
     <Document title={`Payment Request ${data.number}`} author={company.name ?? undefined} creator="Procurement Management">
-      <Page size="A4" style={s.page}>
+      <Page size="A4" style={[s.page, company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {}]}>
         <View style={s.header}>
           <View style={s.company}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img */}
@@ -187,7 +192,8 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
           </View>
         </View>
 
-        <View style={s.footer} fixed>
+        <PdfFooterImage image={company.footer} inset={30} />
+        <View style={[s.footer, company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {}]} fixed>
           <Text>
             {data.number} · Generated {data.generatedAt}
           </Text>

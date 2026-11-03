@@ -2,6 +2,10 @@ import "server-only";
 
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { PDF_FOOTER_PADDING, PDF_FOOTER_TEXT_BOTTOM, PdfFooterImage } from "@/components/print/pdf-footer-image";
+
+import type { PdfImage } from "@/lib/pdf-images";
+
 export type PurchaseOrderPdfData = {
   company: {
     name: string | null;
@@ -11,7 +15,9 @@ export type PurchaseOrderPdfData = {
     phone: string | null;
     email: string | null;
     /** PNG or JPEG bytes (react-pdf does not support WebP). */
-    logo: { data: Buffer; format: "png" | "jpg" } | null;
+    logo: PdfImage | null;
+    /** Uploaded print footer, drawn on every page. */
+    footer: PdfImage | null;
   };
   number: string;
   date: string;
@@ -114,7 +120,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
 
   return (
     <Document title={`Purchase Order ${data.number}`} author={company.name ?? undefined} creator="Procurement Management">
-      <Page size="A4" style={s.page}>
+      <Page size="A4" style={[s.page, company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {}]}>
         <View style={s.header}>
           <View style={s.company}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img */}
@@ -197,7 +203,8 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
           <SignatureBox title="Approved By" name="General Manager" />
         </View>
 
-        <View style={s.footer} fixed>
+        <PdfFooterImage image={company.footer} inset={32} />
+        <View style={[s.footer, company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {}]} fixed>
           <Text>
             {data.number} · Generated {data.generatedAt}
           </Text>

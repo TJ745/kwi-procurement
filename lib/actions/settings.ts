@@ -154,3 +154,35 @@ export async function removeCompanyLogo() {
     run: () => saveSettings({ companyLogo: null, companyLogoType: null }),
   });
 }
+
+const MAX_FOOTER_BYTES = 1024 * 1024;
+
+export async function uploadPrintFooter(formData: FormData) {
+  return runMutation({
+    requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
+    schema: z.object({ file: z.instanceof(File, { message: "Choose an image file." }) }),
+    input: { file: formData.get("file") },
+    success: "Print footer uploaded. It now appears on every printed page and PDF.",
+    run: async ({ file }) => {
+      if (file.size === 0) throw new ActionError("Choose an image file.");
+      if (file.size > MAX_FOOTER_BYTES) throw new ActionError("The footer must be 1 MB or smaller.");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const type = detectImageType(bytes);
+      // The PDF renderer reads PNG and JPEG only.
+      if (type !== "image/png" && type !== "image/jpeg") throw new ActionError("Use a PNG or JPEG image.");
+      await saveSettings({ printFooter: bytes, printFooterType: type });
+    },
+  });
+}
+
+export async function removePrintFooter() {
+  return runMutation({
+    requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
+    schema: z.object({}),
+    input: {},
+    success: "Print footer removed.",
+    run: () => saveSettings({ printFooter: null, printFooterType: null }),
+  });
+}

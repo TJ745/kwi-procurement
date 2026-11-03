@@ -5,7 +5,7 @@ import { cache } from "react";
 import { type AppSettings, Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type Settings = Omit<AppSettings, "companyLogo">;
+export type Settings = Omit<AppSettings, "companyLogo" | "printFooter">;
 
 const DEFAULTS: Settings = {
   id: 1,
@@ -16,6 +16,7 @@ const DEFAULTS: Settings = {
   companyPhone: null,
   companyEmail: null,
   companyLogoType: null,
+  printFooterType: null,
   currency: "USD",
   timeZone: "UTC",
   dateFormat: "d MMM yyyy",
@@ -26,11 +27,11 @@ const DEFAULTS: Settings = {
   updatedAt: new Date(0),
 };
 
-/** System settings for this request (the logo bytes are loaded separately). */
+/** System settings for this request (the logo and footer bytes are loaded separately). */
 export const getSettings = cache(async (): Promise<Settings> => {
   const settings = await prisma.appSettings.findUnique({
     where: { id: 1 },
-    omit: { companyLogo: true },
+    omit: { companyLogo: true, printFooter: true },
   });
   return settings ?? DEFAULTS;
 });

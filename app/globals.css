@@ -150,6 +150,25 @@
 .print-sheet td {
   border: 1px solid #d4d4d4;
 }
+/* Layout table that carries the print footer (no borders of its own). */
+.print-sheet .print-frame {
+  width: 100%;
+}
+.print-sheet .print-frame > tbody > tr > td,
+.print-sheet .print-frame > tfoot > tr > td {
+  border: 0;
+  padding: 0;
+}
+.print-footer {
+  display: block;
+  width: 100%;
+  height: 20mm;
+  margin-top: 1.5rem;
+  object-fit: contain;
+}
+.print-footer-space {
+  display: none;
+}
 @media print {
   @page {
     size: A4 landscape;
@@ -164,6 +183,23 @@
   }
   .print-sheet tr {
     break-inside: avoid;
+  }
+  /* The layout row spans pages; the footer image is fixed so it prints on each one. */
+  .print-sheet .print-frame > tbody > tr {
+    break-inside: auto;
+  }
+  .print-sheet .print-frame > tfoot {
+    display: table-footer-group;
+  }
+  .print-footer-space {
+    display: block;
+    height: 23mm;
+  }
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    margin: 0;
   }
 }
 

@@ -5,6 +5,7 @@ import {
   type MaterialRequestPdfData,
 } from "@/components/material-requests/material-request-pdf";
 import { createDateFormatter, formatQuantity } from "@/lib/format";
+import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 
@@ -17,7 +18,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
   }
 
   const { id } = await params;
-  const [request, logo] = await Promise.all([
+  const [request, images] = await Promise.all([
     prisma.materialRequest.findUnique({
       where: { id },
       include: {
@@ -29,17 +30,12 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
         lines: { orderBy: { lineNo: "asc" } },
       },
     }),
-    prisma.appSettings.findUnique({
-      where: { id: 1 },
-      select: { companyLogo: true, companyLogoType: true },
-    }),
+    loadPdfImages(),
   ]);
   if (!request) return new Response("Not found", { status: 404 });
 
   const { settings } = context;
   const formatDate = createDateFormatter(settings);
-  const logoFormat =
-    logo?.companyLogoType === "image/png" ? "png" : logo?.companyLogoType === "image/jpeg" ? "jpg" : null;
 
   const data: MaterialRequestPdfData = {
     company: {
@@ -49,15 +45,14 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
       cr: settings.companyCr,
       phone: settings.companyPhone,
       email: settings.companyEmail,
-      logo:
-        logo?.companyLogo && logoFormat
-          ? { data: Buffer.from(logo.companyLogo), format: logoFormat }
-          : null,
+      logo: images.logo,
+      footer: images.footer,
     },
     number: request.number,
     requestDate: formatDate.calendarDate(request.requestDate),
     status: request.status,
-    project: `${request.project.code} – ${request.project.name}`,
+    projectName: request.project.name,
+    projectCode: request.project.code,
     department: request.department.name,
     category: request.category.name,
     supplier: request.supplier?.name ?? null,

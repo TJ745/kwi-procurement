@@ -1,7 +1,7 @@
 import { TZDate } from "@date-fns/tz";
 import type { Metadata } from "next";
 
-import { LogoUpload } from "@/components/admin/logo-upload";
+import { ImageUpload } from "@/components/admin/image-upload";
 import {
   CompanySettingsForm,
   DocumentSequenceForm,
@@ -19,12 +19,14 @@ import {
 } from "@/components/ui/card";
 import {
   removeCompanyLogo,
+  removePrintFooter,
   updateCompanySettings,
   updateDocumentSequence,
   updatePurchaseOrderDefaults,
   updateRegionalSettings,
   updateSecuritySettings,
   uploadCompanyLogo,
+  uploadPrintFooter,
 } from "@/lib/actions/settings";
 import { currencyOptions } from "@/lib/currencies";
 import { getEditableSettings } from "@/lib/data/admin";
@@ -71,6 +73,9 @@ export default async function Page() {
   const logoUrl = s.companyLogoType
     ? `/api/settings/logo?v=${s.updatedAt.getTime()}`
     : null;
+  const footerUrl = s.printFooterType
+    ? `/api/settings/footer?v=${s.updatedAt.getTime()}`
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,7 +85,15 @@ export default async function Page() {
         title="Company profile"
         description="Your organisation's details, for use on future procurement documents."
       >
-        <LogoUpload logoUrl={logoUrl} upload={uploadCompanyLogo} remove={removeCompanyLogo} />
+        <ImageUpload
+          noun="logo"
+          imageUrl={logoUrl}
+          upload={uploadCompanyLogo}
+          remove={removeCompanyLogo}
+          accept="image/png,image/jpeg,image/webp"
+          maxBytes={512 * 1024}
+          hint="PNG, JPEG or WebP, up to 512 KB."
+        />
         <CompanySettingsForm
           action={updateCompanySettings}
           defaultValues={{
@@ -91,6 +104,22 @@ export default async function Page() {
             companyPhone: s.companyPhone ?? "",
             companyEmail: s.companyEmail ?? "",
           }}
+        />
+      </Section>
+
+      <Section
+        title="Print footer"
+        description="Printed across the bottom of every page of printed lists, reports and document PDFs."
+      >
+        <ImageUpload
+          noun="footer"
+          imageUrl={footerUrl}
+          upload={uploadPrintFooter}
+          remove={removePrintFooter}
+          accept="image/png,image/jpeg"
+          maxBytes={1024 * 1024}
+          hint="PNG or JPEG, up to 1 MB. A wide banner works best, e.g. 2400 × 200 pixels."
+          wide
         />
       </Section>
 

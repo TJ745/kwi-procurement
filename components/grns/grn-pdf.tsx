@@ -2,7 +2,10 @@ import "server-only";
 
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { PDF_FOOTER_PADDING, PDF_FOOTER_TEXT_BOTTOM, PdfFooterImage } from "@/components/print/pdf-footer-image";
+
 import { DELIVERY_METHODS } from "@/lib/grn";
+import type { PdfImage } from "@/lib/pdf-images";
 
 export type GrnPdfData = {
   company: {
@@ -12,7 +15,9 @@ export type GrnPdfData = {
     cr: string | null;
     phone: string | null;
     email: string | null;
-    logo: { data: Buffer; format: "png" | "jpg" } | null;
+    logo: PdfImage | null;
+    /** Uploaded print footer, drawn on every page. */
+    footer: PdfImage | null;
   };
   number: string;
   date: string;
@@ -129,7 +134,7 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
 
   return (
     <Document title={`GRN ${data.number}`} author={company.name ?? undefined} creator="Procurement Management">
-      <Page size="A4" orientation="landscape" style={s.page}>
+      <Page size="A4" orientation="landscape" style={[s.page, company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {}]}>
         <View style={s.header}>
           <View style={s.company}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img */}
@@ -226,7 +231,8 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
           <SignatureBox title="Inspected By" name="Production Manager" />
         </View>
 
-        <View style={s.footer} fixed>
+        <PdfFooterImage image={company.footer} inset={28} />
+        <View style={[s.footer, company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {}]} fixed>
           <Text>
             {data.number} · Generated {data.generatedAt}
           </Text>

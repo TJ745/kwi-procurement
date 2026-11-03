@@ -125,6 +125,9 @@ model AppSettings {
   companyEmail         String?
   companyLogo          Bytes?
   companyLogoType      String?
+  // Image printed at the bottom of every printed page and PDF.
+  printFooter          Bytes?
+  printFooterType      String?
   currency             String   @default("USD")
   timeZone             String   @default("UTC")
   dateFormat           String   @default("d MMM yyyy")

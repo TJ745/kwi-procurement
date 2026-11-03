@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { GrnPdf, type GrnPdfData } from "@/components/grns/grn-pdf";
 import { createDateFormatter, formatQuantity } from "@/lib/format";
 import { GRN_STATUS_LABELS } from "@/lib/grn";
+import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 
@@ -15,7 +16,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
   }
 
   const { id } = await params;
-  const [grn, logo] = await Promise.all([
+  const [grn, images] = await Promise.all([
     prisma.goodsReceipt.findUnique({
       where: { id },
       include: {
@@ -26,14 +27,12 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
         lines: { orderBy: { lineNo: "asc" }, include: { department: { select: { name: true } } } },
       },
     }),
-    prisma.appSettings.findUnique({ where: { id: 1 }, select: { companyLogo: true, companyLogoType: true } }),
+    loadPdfImages(),
   ]);
   if (!grn) return new Response("Not found", { status: 404 });
 
   const { settings } = context;
   const formatDate = createDateFormatter(settings);
-  const logoFormat =
-    logo?.companyLogoType === "image/png" ? "png" : logo?.companyLogoType === "image/jpeg" ? "jpg" : null;
   const q = (value: { toString(): string }) => formatQuantity(value);
 
   const data: GrnPdfData = {
@@ -44,7 +43,8 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
       cr: settings.companyCr,
       phone: settings.companyPhone,
       email: settings.companyEmail,
-      logo: logo?.companyLogo && logoFormat ? { data: Buffer.from(logo.companyLogo), format: logoFormat } : null,
+      logo: images.logo,
+      footer: images.footer,
     },
     number: grn.number,
     date: formatDate.calendarDate(grn.receiptDate),

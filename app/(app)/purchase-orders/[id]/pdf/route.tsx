@@ -6,6 +6,7 @@ import {
 } from "@/components/purchase-orders/purchase-order-pdf";
 import { createDateFormatter, formatQuantity } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
@@ -19,7 +20,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
   }
 
   const { id } = await params;
-  const [order, logo] = await Promise.all([
+  const [order, images] = await Promise.all([
     prisma.purchaseOrder.findUnique({
       where: { id },
       include: {
@@ -31,18 +32,13 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
         lines: { orderBy: { lineNo: "asc" } },
       },
     }),
-    prisma.appSettings.findUnique({
-      where: { id: 1 },
-      select: { companyLogo: true, companyLogoType: true },
-    }),
+    loadPdfImages(),
   ]);
   if (!order) return new Response("Not found", { status: 404 });
 
   const { settings } = context;
   const formatDate = createDateFormatter(settings);
   const amount = (value: { toString(): string }) => formatMoney(value, order.currency, false);
-  const logoFormat =
-    logo?.companyLogoType === "image/png" ? "png" : logo?.companyLogoType === "image/jpeg" ? "jpg" : null;
   const orderDate = formatDate.calendarDate(order.orderDate);
 
   const data: PurchaseOrderPdfData = {
@@ -53,10 +49,8 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
       cr: settings.companyCr,
       phone: settings.companyPhone,
       email: settings.companyEmail,
-      logo:
-        logo?.companyLogo && logoFormat
-          ? { data: Buffer.from(logo.companyLogo), format: logoFormat }
-          : null,
+      logo: images.logo,
+      footer: images.footer,
     },
     number: order.number,
     date: orderDate,

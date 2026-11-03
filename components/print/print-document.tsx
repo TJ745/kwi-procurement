@@ -14,14 +14,15 @@ type PrintDocumentProps = {
 
 /** Printable page with the company header, title and filters (always light). */
 export function PrintDocument({ title, filters = [], summary, settings, generatedAt, children }: PrintDocumentProps) {
-  const logoUrl = settings.companyLogoType ? `/api/settings/logo?v=${settings.updatedAt.getTime()}` : null;
+  const version = settings.updatedAt.getTime();
+  const logoUrl = settings.companyLogoType ? `/api/settings/logo?v=${version}` : null;
+  const footerUrl = settings.printFooterType ? `/api/settings/footer?v=${version}` : null;
   const registration = [settings.companyVat && `VAT: ${settings.companyVat}`, settings.companyCr && `CR: ${settings.companyCr}`]
     .filter(Boolean)
     .join("   ");
 
-  return (
-    <div className="print-sheet min-h-svh p-6 text-[12px] print:p-0">
-      <PrintToolbar />
+  const content = (
+    <>
       <header className="mb-4 flex items-start justify-between gap-6 border-b-2 border-neutral-900 pb-3">
         <div className="flex items-start gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- authenticated, user-uploaded image */}
@@ -44,6 +45,35 @@ export function PrintDocument({ title, filters = [], summary, settings, generate
         </p>
       )}
       {children}
+    </>
+  );
+
+  return (
+    <div className="print-sheet min-h-svh p-6 text-[12px] print:p-0">
+      <PrintToolbar />
+      {footerUrl ? (
+        <>
+          {/* The empty footer row repeats on every printed page, reserving room for the fixed footer image. */}
+          <table className="print-frame">
+            <tbody>
+              <tr>
+                <td>{content}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>
+                  <div className="print-footer-space" />
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          {/* eslint-disable-next-line @next/next/no-img-element -- authenticated, user-uploaded image */}
+          <img src={footerUrl} alt="" className="print-footer" />
+        </>
+      ) : (
+        content
+      )}
     </div>
   );
 }

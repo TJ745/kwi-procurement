@@ -2,25 +2,52 @@ import "server-only";
 
 import { Image } from "@react-pdf/renderer";
 
-import type { PdfImage } from "@/lib/pdf-images";
+import type { PdfFooter } from "@/lib/pdf-images";
 
-const IMAGE_HEIGHT = 52;
+/** A4 page widths in points. */
+export const A4_WIDTH = { portrait: 595.28, landscape: 841.89 } as const;
+
 const IMAGE_BOTTOM = 12;
+/** Guards against a very tall image swallowing the page. */
+const MAX_IMAGE_HEIGHT = 140;
 
-/** Bottom offset for the page-number line when the footer image is shown. */
-export const PDF_FOOTER_TEXT_BOTTOM = IMAGE_BOTTOM + IMAGE_HEIGHT + 6;
-/** Page bottom padding that keeps content clear of the footer image and page-number line. */
-export const PDF_FOOTER_PADDING = PDF_FOOTER_TEXT_BOTTOM + 22;
+export type PdfFooterLayout = {
+  footer: PdfFooter;
+  inset: number;
+  height: number;
+  /** Bottom offset for the page-number line, just above the image. */
+  textBottom: number;
+  /** Page bottom padding that keeps content clear of the image and page-number line. */
+  padding: number;
+};
+
+/** Sizes the footer to span the page between the side margins, keeping its proportions. */
+export function pdfFooterLayout(
+  footer: PdfFooter | null,
+  { pageWidth, inset }: { pageWidth: number; inset: number },
+): PdfFooterLayout | null {
+  if (!footer) return null;
+  const height = Math.min((pageWidth - inset * 2) * footer.aspect, MAX_IMAGE_HEIGHT);
+  const textBottom = IMAGE_BOTTOM + height + 6;
+  return { footer, inset, height, textBottom, padding: textBottom + 22 };
+}
 
 /** The uploaded print footer, drawn at the bottom of every PDF page. */
-export function PdfFooterImage({ image, inset }: { image: PdfImage | null; inset: number }) {
-  if (!image) return null;
+export function PdfFooterImage({ layout }: { layout: PdfFooterLayout | null }) {
+  if (!layout) return null;
   return (
     // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img
     <Image
       fixed
-      src={image}
-      style={{ position: "absolute", bottom: IMAGE_BOTTOM, left: inset, right: inset, height: IMAGE_HEIGHT, objectFit: "contain" }}
+      src={layout.footer.image}
+      style={{
+        position: "absolute",
+        bottom: IMAGE_BOTTOM,
+        left: layout.inset,
+        right: layout.inset,
+        height: layout.height,
+        objectFit: "contain",
+      }}
     />
   );
 }

@@ -1,5 +1,5 @@
 import { PrintToolbar } from "@/components/print/print-toolbar";
-import type { Settings } from "@/lib/settings";
+import { getPrintFooterSize, type Settings } from "@/lib/settings";
 
 type PrintDocumentProps = {
   title: string;
@@ -13,10 +13,13 @@ type PrintDocumentProps = {
 };
 
 /** Printable page with the company header, title and filters (always light). */
-export function PrintDocument({ title, filters = [], summary, settings, generatedAt, children }: PrintDocumentProps) {
+export async function PrintDocument({ title, filters = [], summary, settings, generatedAt, children }: PrintDocumentProps) {
   const version = settings.updatedAt.getTime();
   const logoUrl = settings.companyLogoType ? `/api/settings/logo?v=${version}` : null;
   const footerUrl = settings.printFooterType ? `/api/settings/footer?v=${version}` : null;
+  // The footer spans the full page width; its height follows the image's proportions.
+  const footerSize = footerUrl ? await getPrintFooterSize() : null;
+  const footerAspect = footerSize ? { aspectRatio: `${footerSize.width} / ${footerSize.height}` } : undefined;
   const registration = [settings.companyVat && `VAT: ${settings.companyVat}`, settings.companyCr && `CR: ${settings.companyCr}`]
     .filter(Boolean)
     .join("   ");
@@ -63,13 +66,15 @@ export function PrintDocument({ title, filters = [], summary, settings, generate
             <tfoot>
               <tr>
                 <td>
-                  <div className="print-footer-space" />
+                  <div className="print-footer-space">
+                    <div style={footerAspect} />
+                  </div>
                 </td>
               </tr>
             </tfoot>
           </table>
           {/* eslint-disable-next-line @next/next/no-img-element -- authenticated, user-uploaded image */}
-          <img src={footerUrl} alt="" className="print-footer" />
+          <img src={footerUrl} alt="" className="print-footer" style={footerAspect} />
         </>
       ) : (
         content

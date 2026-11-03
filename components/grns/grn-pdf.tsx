@@ -1,11 +1,22 @@
 import "server-only";
 
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import {
+  Document,
+  Image,
+  Page,
+  StyleSheet,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 
-import { PDF_FOOTER_PADDING, PDF_FOOTER_TEXT_BOTTOM, PdfFooterImage } from "@/components/print/pdf-footer-image";
+import {
+  A4_WIDTH,
+  PdfFooterImage,
+  pdfFooterLayout,
+} from "@/components/print/pdf-footer-image";
 
 import { DELIVERY_METHODS } from "@/lib/grn";
-import type { PdfImage } from "@/lib/pdf-images";
+import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
 
 export type GrnPdfData = {
   company: {
@@ -17,7 +28,7 @@ export type GrnPdfData = {
     email: string | null;
     logo: PdfImage | null;
     /** Uploaded print footer, drawn on every page. */
-    footer: PdfImage | null;
+    footer: PdfFooter | null;
   };
   number: string;
   date: string;
@@ -53,36 +64,102 @@ const BORDER = "#a3a3a3";
 const MUTED = "#525252";
 
 const s = StyleSheet.create({
-  page: { paddingTop: 26, paddingBottom: 44, paddingHorizontal: 28, fontSize: 8, fontFamily: "Helvetica", color: "#171717" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: "#171717" },
+  page: {
+    paddingTop: 26,
+    paddingBottom: 44,
+    paddingHorizontal: 28,
+    fontSize: 8,
+    fontFamily: "Helvetica",
+    color: "#171717",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingBottom: 8,
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#171717",
+  },
   company: { flexDirection: "row", gap: 10, maxWidth: "62%" },
   logo: { width: 46, height: 46, objectFit: "contain" },
   companyName: { fontSize: 12, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   muted: { color: MUTED },
   bold: { fontFamily: "Helvetica-Bold" },
-  title: { fontSize: 13, fontFamily: "Helvetica-Bold", letterSpacing: 1, textAlign: "right" },
+  titleBlock: { alignItems: "flex-end" },
+  title: { fontSize: 13, fontFamily: "Helvetica-Bold", letterSpacing: 1 },
   panels: { flexDirection: "row", gap: 8, marginTop: 10 },
   panel: { borderWidth: 1, borderColor: BORDER },
-  panelTitle: { fontFamily: "Helvetica-Bold", backgroundColor: "#f5f5f5", paddingVertical: 3, paddingHorizontal: 5, borderBottomWidth: 1, borderBottomColor: BORDER },
+  panelTitle: {
+    fontFamily: "Helvetica-Bold",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
   kv: { flexDirection: "row", paddingVertical: 2, paddingHorizontal: 5 },
   kvLabel: { width: 72, color: MUTED },
   kvValue: { flex: 1 },
-  option: { flexDirection: "row", alignItems: "center", gap: 3, marginRight: 8 },
-  box: { width: 8, height: 8, borderWidth: 1, borderColor: "#404040", alignItems: "center", justifyContent: "center" },
+  option: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginRight: 8,
+  },
+  box: {
+    width: 8,
+    height: 8,
+    borderWidth: 1,
+    borderColor: "#404040",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   tick: { fontSize: 6.5, fontFamily: "Helvetica-Bold", lineHeight: 1 },
   table: { marginTop: 10, borderWidth: 1, borderColor: BORDER },
-  row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER },
+  row: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
   head: { backgroundColor: "#f5f5f5" },
-  th: { fontFamily: "Helvetica-Bold", paddingVertical: 3, paddingHorizontal: 3 },
+  th: {
+    fontFamily: "Helvetica-Bold",
+    paddingVertical: 3,
+    paddingHorizontal: 3,
+  },
   td: { paddingVertical: 3, paddingHorizontal: 3 },
   cell: { borderRightWidth: 1, borderRightColor: BORDER },
   num: { textAlign: "right" },
   remarks: { marginTop: 10, borderWidth: 1, borderColor: BORDER },
-  signRow: { flexDirection: "row", gap: 12, marginTop: 18 },
-  signBox: { flex: 1, borderWidth: 1, borderColor: BORDER, padding: 7, height: 70 },
+  signRow: { flexDirection: "row", gap: 12, marginTop: "auto" },
+  signBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 7,
+    height: 130,
+  },
   signTitle: { fontFamily: "Helvetica-Bold", fontSize: 9 },
-  signLine: { marginTop: "auto", borderTopWidth: 1, borderTopColor: "#737373", paddingTop: 3, flexDirection: "row", justifyContent: "space-between", color: MUTED, fontSize: 7 },
-  footer: { position: "absolute", bottom: 18, left: 28, right: 28, flexDirection: "row", justifyContent: "space-between", fontSize: 7, color: MUTED },
+  signLine: {
+    marginTop: "auto",
+    borderTopWidth: 1,
+    borderTopColor: "#737373",
+    paddingTop: 3,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    color: MUTED,
+    fontSize: 7,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 18,
+    left: 28,
+    right: 28,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontSize: 7,
+    color: MUTED,
+  },
 });
 
 // Column widths (landscape A4 body ≈ 786pt).
@@ -129,28 +206,51 @@ function SignatureBox({ title, name }: { title: string; name: string }) {
 
 export function GrnPdf({ data }: { data: GrnPdfData }) {
   const { company } = data;
-  const registration = [company.vat && `VAT: ${company.vat}`, company.cr && `CR: ${company.cr}`].filter(Boolean).join("   ");
+  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.landscape, inset: 28 });
+  const registration = [
+    company.vat && `VAT: ${company.vat}`,
+    company.cr && `CR: ${company.cr}`,
+  ]
+    .filter(Boolean)
+    .join("   ");
   const contact = [company.phone, company.email].filter(Boolean).join("   ");
 
   return (
-    <Document title={`GRN ${data.number}`} author={company.name ?? undefined} creator="Procurement Management">
-      <Page size="A4" orientation="landscape" style={[s.page, company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {}]}>
+    <Document
+      title={`GRN ${data.number}`}
+      author={company.name ?? undefined}
+      creator="Procurement Management"
+    >
+      <Page
+        size="A4"
+        orientation="landscape"
+        style={[
+          s.page,
+          footer ? { paddingBottom: footer.padding } : {},
+        ]}
+      >
         <View style={s.header}>
           <View style={s.company}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image, not an HTML img */}
             {company.logo && <Image style={s.logo} src={company.logo} />}
             <View>
-              <Text style={s.companyName}>{company.name ?? "Procurement Management"}</Text>
-              {company.address && <Text style={s.muted}>{company.address}</Text>}
+              <Text style={s.companyName}>
+                {company.name ?? "Procurement Management"}
+              </Text>
+              {company.address && (
+                <Text style={s.muted}>{company.address}</Text>
+              )}
               {registration && <Text style={s.muted}>{registration}</Text>}
               {contact && <Text style={s.muted}>{contact}</Text>}
             </View>
           </View>
-          <View>
+          <View style={s.titleBlock}>
             <Text style={s.title}>GOODS RECEIVED NOTE</Text>
-            <Text style={[s.bold, { fontSize: 10.5, marginTop: 3, textAlign: "right" }]}>{data.number}</Text>
-            <Text style={[s.muted, { marginTop: 2, textAlign: "right" }]}>Date: {data.date}</Text>
-            <Text style={[s.muted, { textAlign: "right" }]}>Status: {data.status}</Text>
+            <Text style={[s.bold, { fontSize: 10.5, marginTop: 3 }]}>
+              {data.number}
+            </Text>
+            <Text style={[s.muted, { marginTop: 2 }]}>Date: {data.date}</Text>
+            <Text style={s.muted}>Status: {data.status}</Text>
           </View>
         </View>
 
@@ -176,7 +276,11 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                 {DELIVERY_METHODS.map((method) => (
                   <View key={method.value} style={s.option}>
-                    <View style={s.box}>{data.deliveredBy === method.value && <Text style={s.tick}>X</Text>}</View>
+                    <View style={s.box}>
+                      {data.deliveredBy === method.value && (
+                        <Text style={s.tick}>X</Text>
+                      )}
+                    </View>
                     <Text>{method.label}</Text>
                   </View>
                 ))}
@@ -188,7 +292,14 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
         <View style={s.table}>
           <View style={[s.row, s.head]} fixed>
             {COLS.map((col, index) => (
-              <Text key={col.key} style={[s.th, ...colStyle(col.width, index === COLS.length - 1), col.num ? s.num : {}]}>
+              <Text
+                key={col.key}
+                style={[
+                  s.th,
+                  ...colStyle(col.width, index === COLS.length - 1),
+                  col.num ? s.num : {},
+                ]}
+              >
                 {col.label}
               </Text>
             ))}
@@ -211,7 +322,14 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
             return (
               <View key={line.lineNo} style={s.row} wrap={false}>
                 {COLS.map((col, index) => (
-                  <Text key={col.key} style={[s.td, ...colStyle(col.width, index === COLS.length - 1), col.num ? s.num : {}]}>
+                  <Text
+                    key={col.key}
+                    style={[
+                      s.td,
+                      ...colStyle(col.width, index === COLS.length - 1),
+                      col.num ? s.num : {},
+                    ]}
+                  >
                     {values[col.key]}
                   </Text>
                 ))}
@@ -222,7 +340,9 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
 
         <View style={s.remarks} wrap={false}>
           <Text style={s.panelTitle}>Remarks</Text>
-          <Text style={{ padding: 5, minHeight: 24 }}>{data.remarks ?? ""}</Text>
+          <Text style={{ padding: 5, minHeight: 24 }}>
+            {data.remarks ?? ""}
+          </Text>
         </View>
 
         <View style={s.signRow} wrap={false}>
@@ -231,12 +351,22 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
           <SignatureBox title="Inspected By" name="Production Manager" />
         </View>
 
-        <PdfFooterImage image={company.footer} inset={28} />
-        <View style={[s.footer, company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {}]} fixed>
+        <PdfFooterImage layout={footer} />
+        <View
+          style={[
+            s.footer,
+            footer ? { bottom: footer.textBottom } : {},
+          ]}
+          fixed
+        >
           <Text>
             {data.number} · Generated {data.generatedAt}
           </Text>
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          <Text
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+          />
         </View>
       </Page>
     </Document>

@@ -10,12 +10,12 @@ import {
 } from "@react-pdf/renderer";
 
 import {
-  PDF_FOOTER_PADDING,
-  PDF_FOOTER_TEXT_BOTTOM,
+  A4_WIDTH,
   PdfFooterImage,
+  pdfFooterLayout,
 } from "@/components/print/pdf-footer-image";
 
-import type { PdfImage } from "@/lib/pdf-images";
+import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
 
 export type PurchaseOrderPdfData = {
   company: {
@@ -28,7 +28,7 @@ export type PurchaseOrderPdfData = {
     /** PNG or JPEG bytes (react-pdf does not support WebP). */
     logo: PdfImage | null;
     /** Uploaded print footer, drawn on every page. */
-    footer: PdfImage | null;
+    footer: PdfFooter | null;
   };
   number: string;
   date: string;
@@ -246,6 +246,7 @@ function SignatureBox({ title, name }: { title: string; name: string }) {
 
 export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
   const { company, supplier, order, totals } = data;
+  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.portrait, inset: 32 });
   const registration = [
     company.vat && `VAT: ${company.vat}`,
     company.cr && `CR: ${company.cr}`,
@@ -264,7 +265,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
         size="A4"
         style={[
           s.page,
-          company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {},
+          footer ? { paddingBottom: footer.padding } : {},
         ]}
       >
         <View style={s.header}>
@@ -386,11 +387,11 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
           <SignatureBox title="Approved By" name="General Manager" />
         </View>
 
-        <PdfFooterImage image={company.footer} inset={32} />
+        <PdfFooterImage layout={footer} />
         <View
           style={[
             s.footer,
-            company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {},
+            footer ? { bottom: footer.textBottom } : {},
           ]}
           fixed
         >

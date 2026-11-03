@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { type AppSettings, Prisma } from "@/lib/generated/prisma/client";
+import { imageSize } from "@/lib/image-size";
 import { prisma } from "@/lib/prisma";
 
 export type Settings = Omit<AppSettings, "companyLogo" | "printFooter">;
@@ -34,4 +35,13 @@ export const getSettings = cache(async (): Promise<Settings> => {
     omit: { companyLogo: true, printFooter: true },
   });
   return settings ?? DEFAULTS;
+});
+
+/** Pixel size of the uploaded print footer, or null when there is none. */
+export const getPrintFooterSize = cache(async () => {
+  const settings = await prisma.appSettings.findUnique({
+    where: { id: 1 },
+    select: { printFooter: true },
+  });
+  return settings?.printFooter ? imageSize(settings.printFooter) : null;
 });

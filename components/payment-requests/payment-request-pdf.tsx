@@ -11,9 +11,9 @@ import {
 } from "@react-pdf/renderer";
 
 import {
-  PDF_FOOTER_PADDING,
-  PDF_FOOTER_TEXT_BOTTOM,
+  A4_WIDTH,
   PdfFooterImage,
+  pdfFooterLayout,
 } from "@/components/print/pdf-footer-image";
 
 import {
@@ -22,7 +22,7 @@ import {
   PAYMENT_PRIORITIES,
   PAYMENT_TYPES,
 } from "@/lib/payment-request-options";
-import type { PdfImage } from "@/lib/pdf-images";
+import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
 
 export type PaymentRequestPdfData = {
   company: {
@@ -34,7 +34,7 @@ export type PaymentRequestPdfData = {
     email: string | null;
     logo: PdfImage | null;
     /** Uploaded print footer, drawn on every page. */
-    footer: PdfImage | null;
+    footer: PdfFooter | null;
   };
   number: string;
   date: string;
@@ -212,6 +212,7 @@ function SignatureBox({ title, name }: { title?: string; name?: string }) {
 
 export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
   const { company } = data;
+  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.portrait, inset: 30 });
   const ticked = new Set(data.items);
   const registration = [
     company.vat && `VAT: ${company.vat}`,
@@ -231,7 +232,7 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
         size="A4"
         style={[
           s.page,
-          company.footer ? { paddingBottom: PDF_FOOTER_PADDING } : {},
+          footer ? { paddingBottom: footer.padding } : {},
         ]}
       >
         <View style={s.header}>
@@ -337,11 +338,11 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
           </View>
         </View>
 
-        <PdfFooterImage image={company.footer} inset={30} />
+        <PdfFooterImage layout={footer} />
         <View
           style={[
             s.footer,
-            company.footer ? { bottom: PDF_FOOTER_TEXT_BOTTOM } : {},
+            footer ? { bottom: footer.textBottom } : {},
           ]}
           fixed
         >

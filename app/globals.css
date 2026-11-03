@@ -159,12 +159,16 @@
   border: 0;
   padding: 0;
 }
+/* Full page width; the inline aspect-ratio sets the height. 20mm only if the size is unknown. */
 .print-footer {
   display: block;
   width: 100%;
-  height: 20mm;
+  height: auto;
   margin-top: 1.5rem;
   object-fit: contain;
+}
+.print-footer:not([style]) {
+  height: 20mm;
 }
 .print-footer-space {
   display: none;
@@ -191,9 +195,17 @@
   .print-sheet .print-frame > tfoot {
     display: table-footer-group;
   }
+  /* Reserves the footer's height (same width and aspect ratio) plus a small gap. */
   .print-footer-space {
     display: block;
-    height: 23mm;
+    padding-top: 3mm;
+  }
+  .print-footer-space > div {
+    width: 100%;
+    min-height: 20mm;
+  }
+  .print-footer-space > div[style] {
+    min-height: 0;
   }
   .print-footer {
     position: fixed;

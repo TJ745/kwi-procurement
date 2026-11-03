@@ -86,6 +86,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
     totals: {
       subtotal: amount(order.subtotal),
       discount: amount(order.discount),
+      totalAfterDiscount: amount(order.subtotal.minus(order.discount)),
       vatRate: order.vatRate.toString(),
       vatAmount: amount(order.vatAmount),
       total: amount(order.total),

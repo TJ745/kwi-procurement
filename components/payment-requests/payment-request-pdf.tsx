@@ -5,7 +5,9 @@ import {
   Font,
   Image,
   Page,
+  Polyline,
   StyleSheet,
+  Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
@@ -121,8 +123,8 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tick: { fontSize: 7, fontFamily: "Helvetica-Bold", lineHeight: 1 },
-  fields: { marginTop: 10, borderWidth: 1, borderColor: BORDER },
+  refs: { marginTop: 10, borderWidth: 1, borderColor: BORDER },
+  fields: { marginTop: 14, borderWidth: 1, borderColor: BORDER },
   fieldRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
@@ -174,7 +176,14 @@ const s = StyleSheet.create({
 function Box({ checked, label }: { checked: boolean; label: string }) {
   return (
     <View style={s.option}>
-      <View style={s.box}>{checked && <Text style={s.tick}>X</Text>}</View>
+      <View style={s.box}>
+        {/* Drawn, not typed: the built-in PDF fonts have no ✓ character. */}
+        {checked && (
+          <Svg width={7} height={7} viewBox="0 0 10 10">
+            <Polyline points="1.2,5.4 4,8.2 8.8,1.8" stroke="#171717" strokeWidth={1.8} fill="none" />
+          </Svg>
+        )}
+      </View>
       <Text>{label}</Text>
     </View>
   );
@@ -212,7 +221,10 @@ function SignatureBox({ title, name }: { title?: string; name?: string }) {
 
 export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
   const { company } = data;
-  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.portrait, inset: 30 });
+  const footer = pdfFooterLayout(company.footer, {
+    pageWidth: A4_WIDTH.portrait,
+    inset: 30,
+  });
   const ticked = new Set(data.items);
   const registration = [
     company.vat && `VAT: ${company.vat}`,
@@ -230,10 +242,7 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
     >
       <Page
         size="A4"
-        style={[
-          s.page,
-          footer ? { paddingBottom: footer.padding } : {},
-        ]}
+        style={[s.page, footer ? { paddingBottom: footer.padding } : {}]}
       >
         <View style={s.header}>
           <View style={s.company}>
@@ -299,8 +308,8 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
           </View>
         </View>
 
-        <View style={s.fields}>
-          <View style={s.fieldRow}>
+        <View style={s.refs}>
+          <View style={[s.fieldRow, { borderBottomWidth: 0 }]}>
             <View style={s.third}>
               <Text style={[s.fieldLabel, s.thirdLabel]}>Invoice No</Text>
               <Text style={[s.fieldValue, s.divider]}>
@@ -318,6 +327,9 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
               <Text style={s.fieldValue}>{data.poRef || "—"}</Text>
             </View>
           </View>
+        </View>
+
+        <View style={s.fields}>
           <FieldRow label="Description" value={data.description} />
           <FieldRow label="In Favor of" value={data.inFavorOf} />
           <FieldRow label="Project" value={data.project} />
@@ -332,18 +344,15 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
             <SignatureBox title="Approved By" name="General Manager" />
           </View>
           <View style={s.signRow}>
+            <SignatureBox title="Executive Director" />
             <SignatureBox title="Finance Department" />
-            <SignatureBox />
             <SignatureBox />
           </View>
         </View>
 
         <PdfFooterImage layout={footer} />
         <View
-          style={[
-            s.footer,
-            footer ? { bottom: footer.textBottom } : {},
-          ]}
+          style={[s.footer, footer ? { bottom: footer.textBottom } : {}]}
           fixed
         >
           <Text>

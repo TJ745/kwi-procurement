@@ -197,7 +197,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 8,
-    minHeight: 130,
+    minHeight: 150,
   },
   signTitle: { fontFamily: "Helvetica-Bold", fontSize: 10 },
   signLine: {
@@ -246,7 +246,10 @@ function SignatureBox({ title, name }: { title: string; name: string }) {
 
 export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
   const { company, supplier, order, totals } = data;
-  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.portrait, inset: 32 });
+  const footer = pdfFooterLayout(company.footer, {
+    pageWidth: A4_WIDTH.portrait,
+    inset: 32,
+  });
   const registration = [
     company.vat && `VAT: ${company.vat}`,
     company.cr && `CR: ${company.cr}`,
@@ -263,10 +266,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
     >
       <Page
         size="A4"
-        style={[
-          s.page,
-          footer ? { paddingBottom: footer.padding } : {},
-        ]}
+        style={[s.page, footer ? { paddingBottom: footer.padding } : {}]}
       >
         <View style={s.header}>
           <View style={s.company}>
@@ -298,14 +298,8 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
             <Text style={s.panelTitle}>To</Text>
             <KV label="Company" value={supplier.name} />
             <KV label="Location" value={supplier.location} />
-            <KV
-              label="Contact person"
-              value={
-                [supplier.contactName, supplier.contactNumber]
-                  .filter(Boolean)
-                  .join(" · ") || null
-              }
-            />
+            <KV label="Contact person" value={supplier.contactName} />
+            <KV label="Contact Number" value={supplier.contactNumber} />
             <KV label="Email" value={supplier.email} />
             <KV label="Tel" value={supplier.telephone} />
             <KV label="VAT number" value={supplier.vat} />
@@ -389,10 +383,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
 
         <PdfFooterImage layout={footer} />
         <View
-          style={[
-            s.footer,
-            footer ? { bottom: footer.textBottom } : {},
-          ]}
+          style={[s.footer, footer ? { bottom: footer.textBottom } : {}]}
           fixed
         >
           <Text>

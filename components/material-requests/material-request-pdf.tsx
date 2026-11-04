@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
-  infoLabel: { width: 108, color: MUTED },
+  infoLabel: { width: 65, color: MUTED },
   infoValue: { flex: 1, fontFamily: "Helvetica-Bold" },
   table: { marginTop: 14, borderWidth: 1, borderColor: BORDER },
   row: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 8,
-    minHeight: 130,
+    minHeight: 150,
   },
   signTitle: { fontFamily: "Helvetica-Bold", fontSize: 10 },
   signName: { marginTop: 3, color: MUTED },
@@ -193,7 +193,10 @@ function SignatureBox({ title, name }: { title: string; name: string }) {
 
 export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
   const { company } = data;
-  const footer = pdfFooterLayout(company.footer, { pageWidth: A4_WIDTH.portrait, inset: 36 });
+  const footer = pdfFooterLayout(company.footer, {
+    pageWidth: A4_WIDTH.portrait,
+    inset: 36,
+  });
   const registration = [
     company.vat && `VAT: ${company.vat}`,
     company.cr && `CR: ${company.cr}`,
@@ -210,10 +213,7 @@ export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
     >
       <Page
         size="A4"
-        style={[
-          styles.page,
-          footer ? { paddingBottom: footer.padding } : {},
-        ]}
+        style={[styles.page, footer ? { paddingBottom: footer.padding } : {}]}
       >
         <View style={styles.header}>
           <View style={styles.company}>
@@ -240,12 +240,12 @@ export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
         </View>
 
         <View style={styles.info}>
-          <InfoCell label="Request date" value={data.requestDate} />
-          <InfoCell label="Project Name" value={data.projectName} />
-          <InfoCell label="Requested by" value={data.department} />
-          <InfoCell label="Project Code" value={data.projectCode} />
-          <InfoCell label="Supplier" value={data.supplier} />
-          <InfoCell label="Category" value={data.category} />
+          <InfoCell label="Request date :" value={data.requestDate} />
+          <InfoCell label="Project Name :" value={data.projectName} />
+          <InfoCell label="Requested by :" value={data.department} />
+          <InfoCell label="Project Code :" value={data.projectCode} />
+          <InfoCell label="Supplier :" value={data.supplier} />
+          <InfoCell label="Category :" value={data.category} />
         </View>
 
         <View style={styles.table}>
@@ -277,10 +277,7 @@ export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
 
         <PdfFooterImage layout={footer} />
         <View
-          style={[
-            styles.footer,
-            footer ? { bottom: footer.textBottom } : {},
-          ]}
+          style={[styles.footer, footer ? { bottom: footer.textBottom } : {}]}
           fixed
         >
           <Text>

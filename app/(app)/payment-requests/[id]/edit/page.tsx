@@ -52,6 +52,7 @@ export default async function Page({ params }: PageProps<"/payment-requests/[id]
           amount: request.amount.toString(),
           invoiceNo: request.invoiceNo ?? "",
           quotationNo: request.quotationNo ?? "",
+          note: request.note ?? "",
         }}
       />
     </div>

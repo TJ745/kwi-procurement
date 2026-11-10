@@ -53,6 +53,23 @@ export type PaymentRequestPdfData = {
   invoiceNo: string | null;
   quotationNo: string | null;
   poRef: string | null;
+  note: string | null;
+  /** Instalments against the PO, shown when this request is not a single full payment. */
+  history: {
+    poNumber: string;
+    poTotal: string;
+    rows: {
+      label: string;
+      number: string;
+      date: string;
+      status: string;
+      amount: string;
+      balance: string;
+      current: boolean;
+    }[];
+    totalRequested: string;
+    remaining: string;
+  } | null;
   preparedBy: string;
   generatedAt: string;
 };
@@ -142,13 +159,38 @@ const s = StyleSheet.create({
   third: { flex: 1, flexDirection: "row" },
   thirdLabel: { width: 74 },
   divider: { borderRightWidth: 1, borderRightColor: BORDER },
+  note: { marginTop: 10, borderWidth: 1, borderColor: BORDER },
+  noteLabel: {
+    fontFamily: "Helvetica-Bold",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  noteBody: { padding: 5, lineHeight: 1.35, minHeight: 22 },
+  history: { marginTop: 10, borderWidth: 1, borderColor: BORDER, fontSize: 8.5 },
+  historyTitle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontFamily: "Helvetica-Bold",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  hRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER },
+  hHead: { fontFamily: "Helvetica-Bold", backgroundColor: "#fafafa" },
+  hCurrent: { backgroundColor: "#fdf3e7" },
+  hCell: { paddingVertical: 3, paddingHorizontal: 5, borderRightWidth: 1, borderRightColor: BORDER },
+  hNum: { textAlign: "right" },
   signRow: { flexDirection: "row", gap: 10, marginTop: 10 },
   signBox: {
     flex: 1,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 7,
-    height: 150,
   },
   signTitle: { fontFamily: "Helvetica-Bold", fontSize: 9.5 },
   signLine: {
@@ -206,14 +248,81 @@ function FieldRow({
   );
 }
 
-function SignatureBox({ title, name }: { title?: string; name?: string }) {
+const SIGN_HEIGHT = 130;
+const MIN_SIGN_HEIGHT = 80;
+
+/**
+ * Signature box height that keeps the payment history on page 1: the two rows
+ * of boxes give up the space the table needs beyond what is already free.
+ */
+function signatureHeight(historyRows: number) {
+  if (historyRows === 0) return SIGN_HEIGHT;
+  // Measured: about 60pt for the table's title, header and total rows plus 16.4pt per payment.
+  const tableHeight = 64 + historyRows * 17;
+  // Free space under 130pt boxes when Description and Note fit on one line each; 8pt safety margin.
+  const freeBelowBoxes = 70 - 8;
+  const shrink = Math.max(0, Math.ceil((tableHeight - freeBelowBoxes) / 2));
+  return Math.max(MIN_SIGN_HEIGHT, SIGN_HEIGHT - shrink);
+}
+
+function SignatureBox({ title, name, height }: { title?: string; name?: string; height: number }) {
   return (
-    <View style={s.signBox}>
+    <View style={[s.signBox, { height }]}>
       {title ? <Text style={s.signTitle}>{title}</Text> : <Text> </Text>}
       {name && <Text style={[s.muted, { marginTop: 2 }]}>{name}</Text>}
       <View style={s.signLine}>
         <Text>Signature</Text>
         <Text>Date</Text>
+      </View>
+    </View>
+  );
+}
+
+const HISTORY_COLS = [
+  { key: "label", header: "Payment", width: 78, num: false },
+  { key: "number", header: "PR No", width: 0, num: false },
+  { key: "date", header: "Date", width: 72, num: false },
+  { key: "status", header: "Status", width: 62, num: false },
+  { key: "amount", header: "Amount", width: 92, num: true },
+  { key: "balance", header: "Balance after", width: 92, num: true },
+] as const;
+
+function historyCell(width: number, num: boolean, last: boolean) {
+  return [s.hCell, width ? { width } : { flex: 1 }, num ? s.hNum : {}, last ? { borderRightWidth: 0 } : {}];
+}
+
+/** Every instalment against the PO up to this request, with the running balance. */
+function PaymentHistory({ history }: { history: NonNullable<PaymentRequestPdfData["history"]> }) {
+  const lastIndex = HISTORY_COLS.length - 1;
+  return (
+    <View style={s.history} wrap={false}>
+      <View style={s.historyTitle}>
+        <Text>Payment history · {history.poNumber}</Text>
+        <Text>PO total: {history.poTotal}</Text>
+      </View>
+      <View style={[s.hRow, s.hHead]}>
+        {HISTORY_COLS.map((col, index) => (
+          <Text key={col.key} style={historyCell(col.width, col.num, index === lastIndex)}>
+            {col.header}
+          </Text>
+        ))}
+      </View>
+      {history.rows.map((row) => (
+        <View key={row.number} style={[s.hRow, row.current ? s.hCurrent : {}]}>
+          {HISTORY_COLS.map((col, index) => (
+            <Text
+              key={col.key}
+              style={[...historyCell(col.width, col.num, index === lastIndex), row.current ? s.bold : {}]}
+            >
+              {row[col.key]}
+            </Text>
+          ))}
+        </View>
+      ))}
+      <View style={[s.hRow, s.hHead, { borderBottomWidth: 0 }]}>
+        <Text style={[s.hCell, { flex: 1 }]}>Total requested · Remaining on PO</Text>
+        <Text style={historyCell(92, true, false)}>{history.totalRequested}</Text>
+        <Text style={historyCell(92, true, true)}>{history.remaining}</Text>
       </View>
     </View>
   );
@@ -226,6 +335,7 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
     inset: 30,
   });
   const ticked = new Set(data.items);
+  const signHeight = signatureHeight(data.history?.rows.length ?? 0);
   const registration = [
     company.vat && `VAT: ${company.vat}`,
     company.cr && `CR: ${company.cr}`,
@@ -337,18 +447,25 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
           <FieldRow label="Amount in Words" value={data.amountInWords} last />
         </View>
 
-        <View wrap={false} style={{ marginTop: 18 }}>
+        <View style={s.note} wrap={false}>
+          <Text style={s.noteLabel}>Note:-</Text>
+          <Text style={s.noteBody}>{data.note ?? ""}</Text>
+        </View>
+
+        <View wrap={false}>
           <View style={s.signRow}>
-            <SignatureBox title="Prepared By" name={data.preparedBy} />
-            <SignatureBox title="Checked By" name="Accounts Dept." />
-            <SignatureBox title="Approved By" name="General Manager" />
+            <SignatureBox title="Prepared By" name={data.preparedBy} height={signHeight} />
+            <SignatureBox title="Checked By" name="Accounts Dept." height={signHeight} />
+            <SignatureBox title="Approved By" name="General Manager" height={signHeight} />
           </View>
           <View style={s.signRow}>
-            <SignatureBox title="Executive Director" />
-            <SignatureBox title="Finance Department" />
-            <SignatureBox />
+            <SignatureBox title="Executive Director" height={signHeight} />
+            <SignatureBox title="Finance Department" height={signHeight} />
+            <SignatureBox height={signHeight} />
           </View>
         </View>
+
+        {data.history && <PaymentHistory history={data.history} />}
 
         <PdfFooterImage layout={footer} />
         <View

@@ -90,6 +90,7 @@ export default async function Page({ searchParams }: PageProps<"/payment-request
           amount: source?.balance.remaining ?? "",
           invoiceNo: "",
           quotationNo: source?.quotationRef ?? "",
+          note: "",
         }}
       />
     </div>

@@ -35,6 +35,7 @@ export const paymentRequestSchema = z
       .refine((value) => Number(value) > 0, "Amount must be greater than 0."),
     invoiceNo: text("Invoice No", 100),
     quotationNo: text("Quotation No", 100),
+    note: text("Note", 2000),
   })
   .refine((value) => !value.items.includes(OTHERS_ITEM) || value.otherDetails.length > 0, {
     path: ["otherDetails"],

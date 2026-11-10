@@ -59,6 +59,7 @@ function toData(input: PaymentRequestInput) {
     amount: input.amount,
     invoiceNo: orNull(input.invoiceNo),
     quotationNo: orNull(input.quotationNo),
+    note: orNull(input.note),
   };
 }
 

@@ -6,11 +6,63 @@ import {
 } from "@/components/payment-requests/payment-request-pdf";
 import { amountInWords } from "@/lib/amount-in-words";
 import { createDateFormatter } from "@/lib/format";
+import { type PaymentRequestStatus, Prisma } from "@/lib/generated/prisma/client";
 import { formatMoney } from "@/lib/money";
 import { PAYMENT_REQUEST_STATUS_LABELS } from "@/lib/payment-request-options";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+
+function ordinal(n: number) {
+  const tens = n % 100;
+  const suffix = tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return `${n}${suffix}`;
+}
+
+type PoWithPayments = {
+  number: string;
+  total: Prisma.Decimal;
+  currency: string;
+  paymentRequests: { id: string; number: string; requestDate: Date; status: PaymentRequestStatus; amount: Prisma.Decimal }[];
+};
+
+/**
+ * Instalments against the PO up to and including this request, with the
+ * running balance. Null when there is no PO or this is one full payment.
+ */
+function paymentHistory(
+  requestId: string,
+  po: PoWithPayments | null,
+  formatDate: ReturnType<typeof createDateFormatter>,
+): PaymentRequestPdfData["history"] {
+  if (!po) return null;
+  const index = po.paymentRequests.findIndex((payment) => payment.id === requestId);
+  const payments = po.paymentRequests.slice(0, index + 1);
+  if (payments.length === 1 && payments[0].amount.gte(po.total)) return null;
+
+  const money = (value: Prisma.Decimal) => formatMoney(value, po.currency, false);
+  let requested = new Prisma.Decimal(0);
+  const rows = payments.map((payment, i) => {
+    // A rejected request (only ever this one) does not reduce the balance.
+    if (payment.status !== "REJECTED") requested = requested.plus(payment.amount);
+    return {
+      label: `${ordinal(i + 1)} Payment`,
+      number: payment.number,
+      date: formatDate.calendarDate(payment.requestDate),
+      status: PAYMENT_REQUEST_STATUS_LABELS[payment.status],
+      amount: money(payment.amount),
+      balance: money(po.total.minus(requested)),
+      current: payment.id === requestId,
+    };
+  });
+  return {
+    poNumber: po.number,
+    poTotal: formatMoney(po.total, po.currency),
+    rows,
+    totalRequested: money(requested),
+    remaining: money(po.total.minus(requested)),
+  };
+}
 
 /** Printable A4 PDF of a payment request, for users who can view it. */
 export async function GET(_request: Request, { params }: RouteContext<"/payment-requests/[id]/pdf">) {
@@ -26,7 +78,19 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
       where: { id },
       include: {
         project: { select: { code: true, name: true } },
-        purchaseOrder: { select: { number: true } },
+        purchaseOrder: {
+          select: {
+            number: true,
+            total: true,
+            currency: true,
+            // Every instalment that counts against the PO, plus this request even if rejected.
+            paymentRequests: {
+              where: { OR: [{ status: { not: "REJECTED" } }, { id }] },
+              orderBy: [{ requestDate: "asc" }, { number: "asc" }],
+              select: { id: true, number: true, requestDate: true, status: true, amount: true },
+            },
+          },
+        },
         createdBy: { select: { name: true } },
       },
     }),
@@ -63,6 +127,8 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
     invoiceNo: request.invoiceNo,
     quotationNo: request.quotationNo,
     poRef: request.purchaseOrder?.number ?? null,
+    note: request.note,
+    history: paymentHistory(request.id, request.purchaseOrder, formatDate),
     preparedBy: request.createdBy.name,
     generatedAt: formatDate.dateTime(new Date()),
   };

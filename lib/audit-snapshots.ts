@@ -160,6 +160,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           amount: field("Amount", formatMoney(r.amount.toString(), r.currency)),
           invoiceNo: field("Invoice no", r.invoiceNo),
           quotationNo: field("Quotation no", r.quotationNo),
+          note: field("Note", r.note && clip(r.note)),
         },
       };
     }

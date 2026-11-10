@@ -149,6 +149,7 @@ export default async function Page({ params }: PageProps<"/payment-requests/[id]
               <Detail label="Invoice No" value={request.invoiceNo} />
               <Detail label="Quotation No" value={request.quotationNo} />
               <Detail label="Description" value={request.description} className="sm:col-span-2" />
+              <Detail label="Note" value={request.note} className="sm:col-span-2" />
             </dl>
           </CardContent>
         </Card>

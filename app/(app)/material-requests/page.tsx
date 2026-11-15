@@ -22,6 +22,7 @@ import { listMaterialRequests, parseStatusFilter } from "@/lib/data/material-req
 import { getNavItem } from "@/lib/navigation";
 import { requirePermission } from "@/lib/session";
 import {
+  LOCKED_MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUS_LABELS,
 } from "@/lib/validation/material-request";
@@ -124,7 +125,7 @@ export default async function Page({ searchParams }: PageProps<"/material-reques
                           <Pencil />
                         </Link>
                       )}
-                      {canDelete && request.status !== "APPROVED" && (
+                      {canDelete && !LOCKED_MATERIAL_REQUEST_STATUSES.includes(request.status) && (
                         <DeleteButton
                           entityLabel="material request"
                           itemLabel={request.number}

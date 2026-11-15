@@ -14,6 +14,8 @@ const STYLES: Record<string, string> = {
     "bg-amber-50 text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-900",
   CLOSED:
     "bg-stone-200 text-stone-700 ring-1 ring-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700",
+  CANCELLED:
+    "bg-zinc-100 text-zinc-500 line-through decoration-zinc-400 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800",
 };
 
 export function StatusBadge({ status, label }: { status: string; label: string }) {

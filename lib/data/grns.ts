@@ -3,7 +3,7 @@ import "server-only";
 import { forbidden } from "next/navigation";
 
 import type { GoodsReceiptStatus, Prisma } from "@/lib/generated/prisma/client";
-import { GRN_STATUSES, RECEIVABLE_PO_STATUSES, outstandingQuantity } from "@/lib/grn";
+import { GRN_STATUSES, RECEIVABLE_PO_STATUSES, VOID_GRN_STATUSES, outstandingQuantity } from "@/lib/grn";
 import { type ListParams, paginate } from "@/lib/data/list-params";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, requireUser } from "@/lib/session";
@@ -15,7 +15,7 @@ type Client = Pick<Prisma.TransactionClient, "goodsReceiptLine">;
 
 /**
  * Quantity already accepted per PO line on this PO's other GRNs
- * (rejected GRNs don't count), keyed by purchaseOrderLineId.
+ * (rejected and cancelled GRNs don't count), keyed by purchaseOrderLineId.
  */
 export async function acceptedBefore(client: Client, purchaseOrderId: string, excludeGrnId?: string) {
   const rows = await client.goodsReceiptLine.groupBy({
@@ -23,7 +23,7 @@ export async function acceptedBefore(client: Client, purchaseOrderId: string, ex
     where: {
       goodsReceipt: {
         purchaseOrderId,
-        status: { not: "REJECTED" },
+        status: { notIn: [...VOID_GRN_STATUSES] },
         ...(excludeGrnId && { id: { not: excludeGrnId } }),
       },
     },

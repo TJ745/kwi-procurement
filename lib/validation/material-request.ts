@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Shared by the client form and the Server Actions.
 
-export const MATERIAL_REQUEST_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as const;
+export const MATERIAL_REQUEST_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "CANCELLED"] as const;
 export type MaterialRequestStatusValue = (typeof MATERIAL_REQUEST_STATUSES)[number];
 
 export const MATERIAL_REQUEST_STATUS_LABELS: Record<MaterialRequestStatusValue, string> = {
@@ -10,7 +10,10 @@ export const MATERIAL_REQUEST_STATUS_LABELS: Record<MaterialRequestStatusValue, 
   SUBMITTED: "Submitted",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  CANCELLED: "Cancelled",
 };
+/** Approved and cancelled requests are part of the record and cannot be deleted. */
+export const LOCKED_MATERIAL_REQUEST_STATUSES: readonly MaterialRequestStatusValue[] = ["APPROVED", "CANCELLED"];
 
 export const MAX_LINES = 200;
 

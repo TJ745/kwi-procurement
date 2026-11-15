@@ -120,6 +120,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
       return {
         label: r.number,
         fields: {
+          number: field("PO number", r.number),
           status: field("Status", PURCHASE_ORDER_STATUS_LABELS[r.status]),
           orderDate: field("Order date", toIsoDate(r.orderDate)),
           materialRequest: field("MR number", r.materialRequest?.number),

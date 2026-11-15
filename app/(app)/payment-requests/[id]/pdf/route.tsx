@@ -8,10 +8,12 @@ import { amountInWords } from "@/lib/amount-in-words";
 import { createDateFormatter } from "@/lib/format";
 import { type PaymentRequestStatus, Prisma } from "@/lib/generated/prisma/client";
 import { formatMoney } from "@/lib/money";
-import { PAYMENT_REQUEST_STATUS_LABELS } from "@/lib/payment-request-options";
+import { PAYMENT_REQUEST_STATUS_LABELS, VOID_PAYMENT_REQUEST_STATUSES } from "@/lib/payment-request-options";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+
+const isVoid = (status: PaymentRequestStatus) => (VOID_PAYMENT_REQUEST_STATUSES as readonly string[]).includes(status);
 
 function ordinal(n: number) {
   const tens = n % 100;
@@ -43,8 +45,8 @@ function paymentHistory(
   const money = (value: Prisma.Decimal) => formatMoney(value, po.currency, false);
   let requested = new Prisma.Decimal(0);
   const rows = payments.map((payment, i) => {
-    // A rejected request (only ever this one) does not reduce the balance.
-    if (payment.status !== "REJECTED") requested = requested.plus(payment.amount);
+    // A rejected or cancelled request (only ever this one) does not reduce the balance.
+    if (!isVoid(payment.status)) requested = requested.plus(payment.amount);
     return {
       label: `${ordinal(i + 1)} Payment`,
       number: payment.number,
@@ -83,9 +85,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
             number: true,
             total: true,
             currency: true,
-            // Every instalment that counts against the PO, plus this request even if rejected.
+            // Every instalment that counts against the PO, plus this request even if rejected or cancelled.
             paymentRequests: {
-              where: { OR: [{ status: { not: "REJECTED" } }, { id }] },
+              where: { OR: [{ status: { notIn: [...VOID_PAYMENT_REQUEST_STATUSES] } }, { id }] },
               orderBy: [{ requestDate: "asc" }, { number: "asc" }],
               select: { id: true, number: true, requestDate: true, status: true, amount: true },
             },

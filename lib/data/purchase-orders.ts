@@ -72,6 +72,10 @@ export async function getPurchaseOrder(id: string) {
       materialRequest: { select: { id: true, number: true } },
       createdBy: { select: { name: true } },
       lines: { orderBy: { lineNo: "asc" } },
+      revisions: {
+        orderBy: { revision: "desc" },
+        select: { revision: true, number: true, reason: true, revisedAt: true, revisedBy: { select: { name: true } } },
+      },
     },
   });
 }

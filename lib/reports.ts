@@ -4,6 +4,7 @@ import { TZDate } from "@date-fns/tz";
 import { differenceInCalendarDays, format } from "date-fns";
 
 import { Prisma } from "@/lib/generated/prisma/client";
+import { VOID_GRN_STATUSES } from "@/lib/grn";
 import { prisma } from "@/lib/prisma";
 import { type AuthContext, requirePermission } from "@/lib/session";
 
@@ -208,7 +209,7 @@ export async function pendingDeliveries(filters: { supplierId?: string; projectI
     }),
     prisma.goodsReceiptLine.groupBy({
       by: ["purchaseOrderLineId"],
-      where: { goodsReceipt: { status: { not: "REJECTED" }, purchaseOrder: orderWhere } },
+      where: { goodsReceipt: { status: { notIn: [...VOID_GRN_STATUSES] }, purchaseOrder: orderWhere } },
       _sum: { acceptedQty: true },
     }),
   ]);

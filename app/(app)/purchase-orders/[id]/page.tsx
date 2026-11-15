@@ -1,4 +1,4 @@
-import { ArrowLeft, PackageCheck, Pencil, Printer, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, PackageCheck, Pencil, Printer, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -41,6 +41,7 @@ import {
   LOCKED_PURCHASE_ORDER_STATUSES,
   PURCHASE_ORDER_STATUSES,
   PURCHASE_ORDER_STATUS_LABELS,
+  REVISABLE_PURCHASE_ORDER_STATUSES,
 } from "@/lib/validation/purchase-order";
 
 export const metadata: Metadata = { title: "Purchase order" };
@@ -72,6 +73,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
   const canRequestPayment =
     payable && can("payment_requests:create") && balance !== null && Number(balance.remaining) > 0;
   const locked = LOCKED_PURCHASE_ORDER_STATUSES.includes(order.status);
+  const revisable = REVISABLE_PURCHASE_ORDER_STATUSES.includes(order.status);
   const money = (value: { toString(): string }) => formatMoney(value, order.currency);
 
   return (
@@ -127,7 +129,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
           {can("purchase_orders:edit") && (
             <Link href={`/purchase-orders/${order.id}/edit`} className={buttonVariants({ variant: "outline" })}>
               <Pencil />
-              Edit
+              {revisable ? "Edit / Revise" : "Edit"}
             </Link>
           )}
           {can("purchase_orders:delete") && !locked && (
@@ -294,6 +296,42 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {order.revisions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Revisions</CardTitle>
+            <CardDescription>
+              Current version: <span className="font-mono">{order.number}</span>. Earlier versions are kept exactly as
+              they were issued.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col divide-y">
+              {order.revisions.map((revision) => (
+                <li key={revision.revision} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-mono text-sm font-medium">{revision.number}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Revised by {revision.revisedBy.name} on {formatDate.dateTime(revision.revisedAt)}
+                      {revision.reason && ` · ${revision.reason}`}
+                    </span>
+                  </div>
+                  <a
+                    href={`/purchase-orders/${order.id}/pdf?revision=${revision.revision}`}
+                    target="_blank"
+                    rel="noopener"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    <FileText />
+                    PDF
+                  </a>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

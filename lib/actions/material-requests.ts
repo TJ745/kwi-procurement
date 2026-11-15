@@ -12,6 +12,8 @@ import { allocateDocumentNumber } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
 import { recordIdSchema } from "@/lib/validation/master-data";
 import {
+  LOCKED_MATERIAL_REQUEST_STATUSES,
+  MATERIAL_REQUEST_STATUS_LABELS,
   MATERIAL_REQUEST_STATUSES,
   type MaterialRequestInput,
   materialRequestSchema,
@@ -151,13 +153,13 @@ export async function setMaterialRequestStatus(id: string, status: string) {
 async function deleteUnlessApproved(id: string) {
   // The status check is part of the delete, so a concurrent approval wins.
   const { count } = await prisma.materialRequest.deleteMany({
-    where: { id, status: { not: "APPROVED" } },
+    where: { id, status: { notIn: [...LOCKED_MATERIAL_REQUEST_STATUSES] } },
   });
   if (count === 0) {
-    const exists = await prisma.materialRequest.count({ where: { id } });
+    const current = await prisma.materialRequest.findUnique({ where: { id }, select: { status: true } });
     throw new ActionError(
-      exists
-        ? "Approved requests cannot be deleted."
+      current
+        ? `${MATERIAL_REQUEST_STATUS_LABELS[current.status]} requests cannot be deleted.`
         : "This request no longer exists. Refresh the page.",
     );
   }

@@ -8,6 +8,11 @@ import { currencyOptions } from "@/lib/currencies";
 import { getPurchaseOrder, getPurchaseOrderOptions } from "@/lib/data/purchase-orders";
 import { toIsoDate } from "@/lib/format";
 import { requirePermission } from "@/lib/session";
+import {
+  PURCHASE_ORDER_STATUS_LABELS,
+  REVISABLE_PURCHASE_ORDER_STATUSES,
+  revisedNumber,
+} from "@/lib/validation/purchase-order";
 
 export const metadata: Metadata = { title: "Edit purchase order" };
 
@@ -16,6 +21,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]/
   const { id } = await params;
   const [order, options] = await Promise.all([getPurchaseOrder(id), getPurchaseOrderOptions()]);
   if (!order) notFound();
+  const revisable = REVISABLE_PURCHASE_ORDER_STATUSES.includes(order.status);
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,6 +35,14 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]/
         materialRequestNumber={order.materialRequest?.number}
         dateFormat={settings.dateFormat}
         cancelHref={`/purchase-orders/${order.id}`}
+        revision={
+          revisable
+            ? {
+                nextNumber: revisedNumber(order.number, order.revision + 1),
+                statusLabel: PURCHASE_ORDER_STATUS_LABELS[order.status],
+              }
+            : undefined
+        }
         defaultValues={{
           orderDate: toIsoDate(order.orderDate),
           projectId: order.projectId,

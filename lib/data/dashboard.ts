@@ -4,7 +4,7 @@ import { TZDate } from "@date-fns/tz";
 import { addMonths, differenceInCalendarDays, format } from "date-fns";
 
 import { Prisma } from "@/lib/generated/prisma/client";
-import { GRN_STATUS_LABELS } from "@/lib/grn";
+import { GRN_STATUS_LABELS, VOID_GRN_STATUSES } from "@/lib/grn";
 import { PAYMENT_REQUEST_STATUS_LABELS, PAYMENT_REQUEST_STATUSES } from "@/lib/payment-request-options";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -166,7 +166,7 @@ async function pendingDeliveryLines() {
     prisma.purchaseOrderLine.findMany({ where: { purchaseOrder: where }, select: { id: true, quantity: true, purchaseOrderId: true } }),
     prisma.goodsReceiptLine.groupBy({
       by: ["purchaseOrderLineId"],
-      where: { goodsReceipt: { status: { not: "REJECTED" }, purchaseOrder: where } },
+      where: { goodsReceipt: { status: { notIn: [...VOID_GRN_STATUSES] }, purchaseOrder: where } },
       _sum: { acceptedQty: true },
     }),
   ]);
@@ -249,10 +249,10 @@ export async function getPipeline() {
   const since = new TZDate(year, month - 1, 1, settings.timeZone);
   const steps: Promise<{ key: string; label: string; value: number; href: string }>[] = [];
   if (can("material_requests:view")) {
-    steps.push(prisma.materialRequest.count({ where: { createdAt: { gte: since }, status: { not: "REJECTED" } } }).then((value) => ({ key: "mr", label: "Material requests", value, href: "/material-requests" })));
+    steps.push(prisma.materialRequest.count({ where: { createdAt: { gte: since }, status: { notIn: ["REJECTED", "CANCELLED"] } } }).then((value) => ({ key: "mr", label: "Material requests", value, href: "/material-requests" })));
   }
   if (can("purchase_orders:view")) {
-    steps.push(prisma.purchaseOrder.count({ where: { createdAt: { gte: since }, status: { not: "REJECTED" } } }).then((value) => ({ key: "po", label: "Purchase orders", value, href: "/purchase-orders" })));
+    steps.push(prisma.purchaseOrder.count({ where: { createdAt: { gte: since }, status: { notIn: ["REJECTED", "CANCELLED"] } } }).then((value) => ({ key: "po", label: "Purchase orders", value, href: "/purchase-orders" })));
   }
   if (can("grns:view")) {
     steps.push(prisma.goodsReceipt.count({ where: { createdAt: { gte: since }, status: "APPROVED" } }).then((value) => ({ key: "grn", label: "Goods received (approved)", value, href: "/grn?status=APPROVED" })));
@@ -291,7 +291,7 @@ export async function getAttention() {
     groups.push(
       prisma.paymentRequest
         .findMany({
-          where: { priority: { in: ["URGENT", "TOP_URGENT"] }, status: { notIn: ["PAID", "REJECTED"] } },
+          where: { priority: { in: ["URGENT", "TOP_URGENT"] }, status: { notIn: ["PAID", "REJECTED", "CANCELLED"] } },
           orderBy: [{ priority: "desc" }, { requestDate: "asc" }],
           take: 5,
           select: { id: true, number: true, priority: true, inFavorOf: true, amount: true, currency: true },

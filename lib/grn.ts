@@ -1,15 +1,18 @@
 /** Goods Received Note options and quantity rules (shared by client and server). */
 
-export const GRN_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as const;
+export const GRN_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "CANCELLED"] as const;
 export type GrnStatusValue = (typeof GRN_STATUSES)[number];
 export const GRN_STATUS_LABELS: Record<GrnStatusValue, string> = {
   DRAFT: "Draft",
   SUBMITTED: "Submitted",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  CANCELLED: "Cancelled",
 };
-/** Approved GRNs are part of the record and cannot be deleted. */
-export const LOCKED_GRN_STATUSES: readonly GrnStatusValue[] = ["APPROVED"];
+/** Approved and cancelled GRNs are part of the record and cannot be deleted. */
+export const LOCKED_GRN_STATUSES: readonly GrnStatusValue[] = ["APPROVED", "CANCELLED"];
+/** GRNs that do not count as received. */
+export const VOID_GRN_STATUSES = ["REJECTED", "CANCELLED"] as const;
 
 export const DELIVERY_METHODS = [
   { value: "AIR_FREIGHT", label: "Air Freight" },

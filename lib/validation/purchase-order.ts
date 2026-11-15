@@ -11,6 +11,7 @@ export const PURCHASE_ORDER_STATUSES = [
   "REJECTED",
   "ISSUED",
   "CLOSED",
+  "CANCELLED",
 ] as const;
 export type PurchaseOrderStatusValue = (typeof PURCHASE_ORDER_STATUSES)[number];
 
@@ -21,14 +22,25 @@ export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatusValue, stri
   REJECTED: "Rejected",
   ISSUED: "Issued",
   CLOSED: "Closed",
+  CANCELLED: "Cancelled",
 };
 
-/** POs past approval are part of the record and cannot be deleted. */
+/** POs past approval, and cancelled POs, are part of the record and cannot be deleted. */
 export const LOCKED_PURCHASE_ORDER_STATUSES: readonly PurchaseOrderStatusValue[] = [
   "APPROVED",
   "ISSUED",
   "CLOSED",
+  "CANCELLED",
 ];
+
+/** Orders whose edits can be saved as a new revision (R1, R2…). */
+export const REVISABLE_PURCHASE_ORDER_STATUSES: readonly PurchaseOrderStatusValue[] = ["APPROVED", "ISSUED"];
+
+/** "PO-2026-0006" for the original, "PO-2026-0006-R2" for revision 2. */
+export function revisedNumber(number: string, revision: number) {
+  const base = number.replace(/-R\d+$/i, "");
+  return revision > 0 ? `${base}-R${revision}` : base;
+}
 
 export const MAX_PO_LINES = 200;
 

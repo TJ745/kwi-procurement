@@ -30,6 +30,7 @@ import { getMaterialRequest } from "@/lib/data/material-requests";
 import { formatQuantity } from "@/lib/format";
 import { requirePermission } from "@/lib/session";
 import {
+  LOCKED_MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUS_LABELS,
 } from "@/lib/validation/material-request";
@@ -53,6 +54,7 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
   const request = await getMaterialRequest(id);
   if (!request) notFound();
   const approved = request.status === "APPROVED";
+  const locked = LOCKED_MATERIAL_REQUEST_STATUSES.includes(request.status);
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,7 +106,7 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
               Edit
             </Link>
           )}
-          {can("material_requests:delete") && !approved && (
+          {can("material_requests:delete") && !locked && (
             <DeleteButton
               variant="button"
               entityLabel="material request"
@@ -119,7 +121,11 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
       <Card>
         <CardHeader>
           <CardTitle>Request details</CardTitle>
-          {approved && <CardDescription>Approved requests cannot be deleted.</CardDescription>}
+          {locked && (
+              <CardDescription>
+                {MATERIAL_REQUEST_STATUS_LABELS[request.status]} requests cannot be deleted.
+              </CardDescription>
+            )}
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

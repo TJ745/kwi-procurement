@@ -1,18 +1,19 @@
 import "server-only";
 
 import { Prisma } from "@/lib/generated/prisma/client";
+import { VOID_PAYMENT_REQUEST_STATUSES } from "@/lib/payment-request-options";
 
 type Client = Pick<Prisma.TransactionClient, "paymentRequest">;
 
 /**
  * Sum of a PO's payment requests that count against its total (everything
- * except Rejected), optionally excluding one request (when editing it).
+ * except Rejected and Cancelled), optionally excluding one request (when editing it).
  */
 export async function requestedAgainst(client: Client, purchaseOrderId: string, excludeId?: string) {
   const { _sum } = await client.paymentRequest.aggregate({
     where: {
       purchaseOrderId,
-      status: { not: "REJECTED" },
+      status: { notIn: [...VOID_PAYMENT_REQUEST_STATUSES] },
       ...(excludeId && { id: { not: excludeId } }),
     },
     _sum: { amount: true },

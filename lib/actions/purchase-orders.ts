@@ -8,13 +8,16 @@ import { computeTotals, formatMoney } from "@/lib/money";
 import { lockPurchaseOrder, requestedAgainst } from "@/lib/payment-balance";
 import { allocateDocumentNumber } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
+import { PO_DOCUMENT_INCLUDE, toSnapshot } from "@/lib/purchase-order-revisions";
 import { recordIdSchema } from "@/lib/validation/master-data";
 import {
   LOCKED_PURCHASE_ORDER_STATUSES,
   PURCHASE_ORDER_STATUSES,
   PURCHASE_ORDER_STATUS_LABELS,
   type PurchaseOrderInput,
+  REVISABLE_PURCHASE_ORDER_STATUSES,
   purchaseOrderSchema,
+  revisedNumber,
 } from "@/lib/validation/purchase-order";
 
 // Interactive transactions queue on the numbering row lock; allow for that.
@@ -152,25 +155,53 @@ export async function createPurchaseOrder(materialRequestId: string, input: unkn
   });
 }
 
+const updateSchema = purchaseOrderSchema.extend({
+  id: recordIdSchema,
+  // Save the edit as a new revision (R1, R2…), keeping the previous version.
+  revise: z.boolean().default(false),
+  revisionReason: z.string().trim().max(500, "Reason must be at most 500 characters.").default(""),
+});
+
 export async function updatePurchaseOrder(id: string, input: unknown) {
   return runMutation({
     requirement: "purchase_orders:edit",
-    audit: { entity: "purchase_order", action: "update" },
-    schema: purchaseOrderSchema.extend({ id: recordIdSchema }),
+    audit: { entity: "purchase_order", action: (data) => (data.revise ? "revise" : "update") },
+    schema: updateSchema,
     input: { ...(input as object), id },
-    success: "Purchase order updated.",
+    success: (data) => (data.revise ? "Saved as a new revision." : "Purchase order updated."),
     refreshPage: false,
-    run: async ({ id, ...data }) => {
+    run: async ({ id, revise, revisionReason, ...data }, { user }) => {
       await assertReferences(data);
       const { header, lines } = toData(data);
       // Lines are replaced as a whole so Sr No stays contiguous. The source MR
-      // link and the number are fixed at creation.
+      // link is fixed at creation; the number only changes with a revision.
       return prisma.$transaction(async (tx) => {
         await lockPurchaseOrder(tx, id);
         const current = await tx.purchaseOrder.findUniqueOrThrow({
           where: { id },
-          select: { currency: true },
+          include: PO_DOCUMENT_INCLUDE,
         });
+        let revision = {};
+        if (revise) {
+          if (!REVISABLE_PURCHASE_ORDER_STATUSES.includes(current.status)) {
+            throw new ActionError(
+              `${PURCHASE_ORDER_STATUS_LABELS[current.status]} purchase orders can't be revised; save the changes directly.`,
+            );
+          }
+          // Keep the version being replaced so it can still be viewed and printed.
+          await tx.purchaseOrderRevision.create({
+            data: {
+              purchaseOrderId: id,
+              revision: current.revision,
+              number: current.number,
+              snapshot: toSnapshot(current),
+              reason: revisionReason || null,
+              revisedById: user.id,
+            },
+          });
+          const next = current.revision + 1;
+          revision = { revision: next, number: revisedNumber(current.number, next) };
+        }
         // Payment requests already raised must still fit within the order.
         const requested = await requestedAgainst(tx, id);
         if (requested.greaterThan(0)) {
@@ -206,12 +237,12 @@ export async function updatePurchaseOrder(id: string, input: unknown) {
               "Goods have been received against this purchase order, so its items, quantities and prices can't be changed.",
             );
           }
-          return tx.purchaseOrder.update({ where: { id }, data: header, select: { id: true } });
+          return tx.purchaseOrder.update({ where: { id }, data: { ...header, ...revision }, select: { id: true } });
         }
         await tx.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } });
         return tx.purchaseOrder.update({
           where: { id },
-          data: { ...header, lines: { createMany: { data: lines } } },
+          data: { ...header, ...revision, lines: { createMany: { data: lines } } },
           select: { id: true },
         });
       }, TRANSACTION_OPTIONS);

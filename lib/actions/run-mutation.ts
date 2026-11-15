@@ -26,7 +26,7 @@ type MutationOptions<S extends z.ZodType> = {
   schema: S;
   input: unknown;
   run: (data: z.output<S>, context: AuthContext) => Promise<unknown>;
-  success: string;
+  success: string | ((data: z.output<S>) => string);
   /** The field covered by a unique constraint, for duplicate errors. */
   unique?: { field: string; message: string };
   /** Set to false when the client navigates away after success. */
@@ -48,6 +48,7 @@ const VERBS: Record<string, string> = {
   update: "Updated",
   delete: "Deleted",
   status: "Changed status of",
+  revise: "Revised",
   password_reset: "Reset the password of",
   activate: "Reactivated",
   deactivate: "Deactivated",
@@ -128,7 +129,8 @@ export async function runMutation<S extends z.ZodType>({
     }
   }
 
-  return { ok: true, message: success, ...(id && { id }) };
+  const message = typeof success === "function" ? success(data) : success;
+  return { ok: true, message, ...(id && { id }) };
 }
 
 function toErrorResult(

@@ -12,29 +12,30 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
+  id                 String                  @id
+  name               String
+  email              String                  @unique
+  emailVerified      Boolean                 @default(false)
+  image              String?
   // Built-in system role: "super_admin" (the .env-managed account, full
   // access) or "user" (access defined by `customRole`). Never accepted from
   // client input (see lib/auth.ts).
-  role               String    @default("user")
+  role               String                  @default("user")
   roleId             String?
-  customRole         Role?     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  customRole         Role?                   @relation(fields: [roleId], references: [id], onDelete: Restrict)
   // Deactivated users cannot sign in; records are kept for history.
-  active             Boolean   @default(true)
+  active             Boolean                 @default(true)
   // Set when an administrator assigns a temporary password.
-  mustChangePassword Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now()) @updatedAt
+  mustChangePassword Boolean                 @default(false)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @default(now()) @updatedAt
   sessions           Session[]
   accounts           Account[]
   materialRequests   MaterialRequest[]
   purchaseOrders     PurchaseOrder[]
   paymentRequests    PaymentRequest[]
   goodsReceipts      GoodsReceipt[]
+  poRevisions        PurchaseOrderRevision[]
   notifications      Notification[]
 
   @@index([roleId])
@@ -181,11 +182,11 @@ model Notification {
 // ---------------------------------------------------------------------------
 
 model Project {
-  id        String   @id @default(cuid())
-  code      String   @unique @db.Citext
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String            @id @default(cuid())
+  code             String            @unique @db.Citext
+  name             String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
   paymentRequests  PaymentRequest[]
@@ -200,23 +201,23 @@ enum SupplierPaymentTerm {
 }
 
 model Supplier {
-  id            String   @id @default(cuid())
-  name          String
+  id               String              @id @default(cuid())
+  name             String
   // Stored normalised (uppercase, no spaces); unique when provided.
-  vat           String?  @unique
-  cr            String?
-  iban          String?
-  address       String?
-  contactName   String?
-  contactEmail  String?
-  contactNumber String?
-  email         String?
-  telephone     String?
+  vat              String?             @unique
+  cr               String?
+  iban             String?
+  address          String?
+  contactName      String?
+  contactEmail     String?
+  contactNumber    String?
+  email            String?
+  telephone        String?
   // Cash or credit supplier; credit days only apply to credit suppliers.
-  paymentTerm   SupplierPaymentTerm @default(CASH)
-  creditDays    Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  paymentTerm      SupplierPaymentTerm @default(CASH)
+  creditDays       Int?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
   paymentRequests  PaymentRequest[]
@@ -225,23 +226,23 @@ model Supplier {
 }
 
 model Department {
-  id        String   @id @default(cuid())
-  name      String   @unique @db.Citext
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  materialRequests MaterialRequest[]
-  purchaseOrders   PurchaseOrder[]
-  goodsReceipts    GoodsReceipt[]
+  id                String             @id @default(cuid())
+  name              String             @unique @db.Citext
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  materialRequests  MaterialRequest[]
+  purchaseOrders    PurchaseOrder[]
+  goodsReceipts     GoodsReceipt[]
   goodsReceiptLines GoodsReceiptLine[]
 
   @@map("department")
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique @db.Citext
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String            @id @default(cuid())
+  name             String            @unique @db.Citext
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   materialRequests MaterialRequest[]
   purchaseOrders   PurchaseOrder[]
 
@@ -257,30 +258,31 @@ enum MaterialRequestStatus {
   SUBMITTED
   APPROVED
   REJECTED
+  CANCELLED
 }
 
 model MaterialRequest {
-  id           String                @id @default(cuid())
+  id            String                @id @default(cuid())
   // Assigned from Settings > Document numbering when the request is created.
-  number       String                @unique @db.Citext
-  requestDate  DateTime              @db.Date
-  status       MaterialRequestStatus @default(DRAFT)
-  projectId    String
-  project      Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  number        String                @unique @db.Citext
+  requestDate   DateTime              @db.Date
+  status        MaterialRequestStatus @default(DRAFT)
+  projectId     String
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
   // Shown as "Requested by".
-  departmentId String
-  department   Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  categoryId   String
-  category     Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  supplierId   String?
-  supplier     Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  createdById  String
-  createdBy    User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  lines        MaterialRequestLine[]
+  departmentId  String
+  department    Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  categoryId    String
+  category      Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  supplierId    String?
+  supplier      Supplier?             @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdById   String
+  createdBy     User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  lines         MaterialRequestLine[]
   // Set once a PO has been raised from this request (one PO per MR).
   purchaseOrder PurchaseOrder?
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 
   @@index([projectId])
   @@index([departmentId])
@@ -314,29 +316,33 @@ enum PurchaseOrderStatus {
   REJECTED
   ISSUED
   CLOSED
+  CANCELLED
 }
 
 model PurchaseOrder {
-  id                    String              @id @default(cuid())
-  // Assigned from Settings > Document numbering when the order is created.
-  number                String              @unique @db.Citext
-  orderDate             DateTime            @db.Date
-  status                PurchaseOrderStatus @default(DRAFT)
+  id                    String                  @id @default(cuid())
+  // Assigned from Settings > Document numbering when the order is created;
+  // revisions add "-R1", "-R2"… to the same base number.
+  number                String                  @unique @db.Citext
+  // 0 for the original order, then 1, 2… for each revision.
+  revision              Int                     @default(0)
+  orderDate             DateTime                @db.Date
+  status                PurchaseOrderStatus     @default(DRAFT)
   // Source request, when the PO was raised from an approved MR.
-  materialRequestId     String?             @unique
-  materialRequest       MaterialRequest?    @relation(fields: [materialRequestId], references: [id], onDelete: Restrict)
+  materialRequestId     String?                 @unique
+  materialRequest       MaterialRequest?        @relation(fields: [materialRequestId], references: [id], onDelete: Restrict)
   projectId             String
-  project               Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  project               Project                 @relation(fields: [projectId], references: [id], onDelete: Restrict)
   // Shown as "Ordered by".
   departmentId          String
-  department            Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  department            Department              @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   // Shown as the PO "Subject".
   categoryId            String
-  category              Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category              Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   deliverTo             String
   // Supplier, plus the details as issued on this PO (editable, not live).
   supplierId            String
-  supplier              Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  supplier              Supplier                @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   supplierName          String
   supplierAddress       String?
   supplierContactName   String?
@@ -347,19 +353,20 @@ model PurchaseOrder {
   quotationRef          String?
   // Amounts in `currency`, rounded to its minor units; computed on the server.
   currency              String
-  subtotal              Decimal             @db.Decimal(18, 3)
-  discount              Decimal             @default(0) @db.Decimal(18, 3)
-  vatRate               Decimal             @db.Decimal(5, 2)
-  vatAmount             Decimal             @db.Decimal(18, 3)
-  total                 Decimal             @db.Decimal(18, 3)
+  subtotal              Decimal                 @db.Decimal(18, 3)
+  discount              Decimal                 @default(0) @db.Decimal(18, 3)
+  vatRate               Decimal                 @db.Decimal(5, 2)
+  vatAmount             Decimal                 @db.Decimal(18, 3)
+  total                 Decimal                 @db.Decimal(18, 3)
   terms                 String?
   createdById           String
-  createdBy             User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy             User                    @relation(fields: [createdById], references: [id], onDelete: Restrict)
   lines                 PurchaseOrderLine[]
   paymentRequests       PaymentRequest[]
   goodsReceipts         GoodsReceipt[]
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  revisions             PurchaseOrderRevision[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 
   @@index([projectId])
   @@index([departmentId])
@@ -371,17 +378,38 @@ model PurchaseOrder {
   @@map("purchase_order")
 }
 
-model PurchaseOrderLine {
+/// A superseded version of a purchase order, kept so it can be reprinted exactly.
+model PurchaseOrderRevision {
   id              String        @id @default(cuid())
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  // The version stored here (0 = the original order) and its number at the time.
+  revision        Int
+  number          String
+  // The order as it was: header, related names and lines (see lib/purchase-order-revisions.ts).
+  snapshot        Json
+  // Why it was revised, and who revised it when.
+  reason          String?
+  revisedById     String
+  revisedBy       User          @relation(fields: [revisedById], references: [id], onDelete: Restrict)
+  revisedAt       DateTime      @default(now())
+
+  @@unique([purchaseOrderId, revision])
+  @@index([revisedById])
+  @@map("purchase_order_revision")
+}
+
+model PurchaseOrderLine {
+  id              String             @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   // Sr No, 1-based and contiguous.
   lineNo          Int
   name            String
   unit            String
-  quantity        Decimal       @db.Decimal(14, 2)
-  unitPrice       Decimal       @db.Decimal(18, 3)
-  total           Decimal       @db.Decimal(18, 3)
+  quantity        Decimal            @db.Decimal(14, 2)
+  unitPrice       Decimal            @db.Decimal(18, 3)
+  total           Decimal            @db.Decimal(18, 3)
   receipts        GoodsReceiptLine[]
 
   @@unique([purchaseOrderId, lineNo])
@@ -394,6 +422,7 @@ enum PaymentRequestStatus {
   APPROVED
   REJECTED
   PAID
+  CANCELLED
 }
 
 enum PaymentType {
@@ -453,6 +482,7 @@ enum GoodsReceiptStatus {
   SUBMITTED
   APPROVED
   REJECTED
+  CANCELLED
 }
 
 enum DeliveryMethod {

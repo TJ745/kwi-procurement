@@ -8,11 +8,12 @@ import { createDateFormatter, formatQuantity } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
+import { fromSnapshot, PO_DOCUMENT_INCLUDE } from "@/lib/purchase-order-revisions";
 import { getAuthContext } from "@/lib/session";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
 
 /** Printable A4 PDF of a purchase order, for users who can view it. */
-export async function GET(_request: Request, { params }: RouteContext<"/purchase-orders/[id]/pdf">) {
+export async function GET(request: Request, { params }: RouteContext<"/purchase-orders/[id]/pdf">) {
   const context = await getAuthContext();
   if (!context) return new Response("Unauthorized", { status: 401 });
   if (context.user.mustChangePassword || !context.can("purchase_orders:view")) {
@@ -20,21 +21,27 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
   }
 
   const { id } = await params;
-  const [order, images] = await Promise.all([
-    prisma.purchaseOrder.findUnique({
-      where: { id },
-      include: {
-        project: { select: { code: true, name: true } },
-        department: { select: { name: true } },
-        category: { select: { name: true } },
-        materialRequest: { select: { number: true } },
-        createdBy: { select: { name: true } },
-        lines: { orderBy: { lineNo: "asc" } },
-      },
-    }),
+  // ?revision=N prints a superseded version exactly as it was.
+  const revisionParam = new URL(request.url).searchParams.get("revision");
+  const revisionNo = revisionParam !== null && /^\d{1,4}$/.test(revisionParam) ? Number(revisionParam) : null;
+
+  const [live, images] = await Promise.all([
+    prisma.purchaseOrder.findUnique({ where: { id }, include: PO_DOCUMENT_INCLUDE }),
     loadPdfImages(),
   ]);
-  if (!order) return new Response("Not found", { status: 404 });
+  if (!live) return new Response("Not found", { status: 404 });
+
+  let order = live;
+  let statusLabel = PURCHASE_ORDER_STATUS_LABELS[live.status];
+  if (revisionNo !== null && revisionNo !== live.revision) {
+    const saved = await prisma.purchaseOrderRevision.findUnique({
+      where: { purchaseOrderId_revision: { purchaseOrderId: id, revision: revisionNo } },
+      select: { snapshot: true },
+    });
+    if (!saved) return new Response("Not found", { status: 404 });
+    order = fromSnapshot(saved.snapshot);
+    statusLabel = `Superseded by ${live.number}`;
+  }
 
   const { settings } = context;
   const formatDate = createDateFormatter(settings);
@@ -54,7 +61,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/purchase
     },
     number: order.number,
     date: orderDate,
-    status: PURCHASE_ORDER_STATUS_LABELS[order.status],
+    status: statusLabel,
     supplier: {
       name: order.supplierName,
       location: order.supplierAddress,

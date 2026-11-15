@@ -70,7 +70,7 @@ export const PAYMENT_PRIORITIES = [
 export type PaymentTypeValue = (typeof PAYMENT_TYPES)[number]["value"];
 export type PaymentPriorityValue = (typeof PAYMENT_PRIORITIES)[number]["value"];
 
-export const PAYMENT_REQUEST_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PAID"] as const;
+export const PAYMENT_REQUEST_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PAID", "CANCELLED"] as const;
 export type PaymentRequestStatusValue = (typeof PAYMENT_REQUEST_STATUSES)[number];
 export const PAYMENT_REQUEST_STATUS_LABELS: Record<PaymentRequestStatusValue, string> = {
   DRAFT: "Draft",
@@ -78,9 +78,12 @@ export const PAYMENT_REQUEST_STATUS_LABELS: Record<PaymentRequestStatusValue, st
   APPROVED: "Approved",
   REJECTED: "Rejected",
   PAID: "Paid",
+  CANCELLED: "Cancelled",
 };
-/** Approved and paid requests are part of the record and cannot be deleted. */
-export const LOCKED_PAYMENT_REQUEST_STATUSES: readonly PaymentRequestStatusValue[] = ["APPROVED", "PAID"];
+/** Approved, paid and cancelled requests are part of the record and cannot be deleted. */
+export const LOCKED_PAYMENT_REQUEST_STATUSES: readonly PaymentRequestStatusValue[] = ["APPROVED", "PAID", "CANCELLED"];
+/** Requests that do not count against their PO's balance. */
+export const VOID_PAYMENT_REQUEST_STATUSES = ["REJECTED", "CANCELLED"] as const;
 
 /** Purchase orders that may be paid against. */
 export const PAYABLE_PO_STATUSES = ["APPROVED", "ISSUED", "CLOSED"] as const;

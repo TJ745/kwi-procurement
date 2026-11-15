@@ -3,6 +3,7 @@
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { type Control, Controller, useFieldArray, useFormState, useWatch } from "react-hook-form";
 
 import { ComboboxField } from "@/components/forms/combobox-field";
@@ -19,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { ActionResult } from "@/lib/action-result";
@@ -42,8 +44,10 @@ type SupplierDetails = Pick<
   | "supplierVat"
 >;
 
+type RevisionInput = { revise: boolean; revisionReason: string };
+
 type PurchaseOrderFormProps = {
-  action: (input: PurchaseOrderInput) => Promise<ActionResult>;
+  action: (input: PurchaseOrderInput & Partial<RevisionInput>) => Promise<ActionResult>;
   defaultValues: PurchaseOrderInput;
   options: {
     projects: (Option & { name: string })[];
@@ -59,6 +63,8 @@ type PurchaseOrderFormProps = {
   materialRequestNumber?: string;
   cancelHref: string;
   dateFormat: string;
+  /** Offered when editing an approved or issued order: the number the next revision gets. */
+  revision?: { nextNumber: string; statusLabel: string };
 };
 
 const LINE_COLUMNS =
@@ -73,12 +79,15 @@ export function PurchaseOrderForm({
   materialRequestNumber,
   cancelHref,
   dateFormat,
+  revision,
 }: PurchaseOrderFormProps) {
   const router = useRouter();
+  const [asRevision, setAsRevision] = useState(Boolean(revision));
+  const [revisionReason, setRevisionReason] = useState("");
   const { form, onSubmit } = useActionForm({
     schema: purchaseOrderSchema,
     defaultValues,
-    action,
+    action: (values) => (revision ? action({ ...values, revise: asRevision, revisionReason }) : action(values)),
     onSuccess: (result) => {
       // Pages stay mounted in the background between visits (Cache
       // Components / Activity), so clear the saved values first.
@@ -289,13 +298,45 @@ export function PurchaseOrderForm({
         </Card>
       </div>
 
+      {revision && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Revision</CardTitle>
+            <CardDescription>
+              This order is {revision.statusLabel.toLowerCase()}. Saving as a revision keeps the current version ({number}) so
+              it can still be viewed and printed, and renumbers the order {revision.nextNumber}. Untick to correct the
+              current version without a new revision.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Field orientation="horizontal">
+              <Checkbox id="po-revise" checked={asRevision} onCheckedChange={(checked) => setAsRevision(checked === true)} />
+              <FieldLabel htmlFor="po-revise">Save as revision {revision.nextNumber}</FieldLabel>
+            </Field>
+            {asRevision && (
+              <Field>
+                <FieldLabel htmlFor="po-revision-reason">Reason for revision</FieldLabel>
+                <Input
+                  id="po-revision-reason"
+                  value={revisionReason}
+                  onChange={(event) => setRevisionReason(event.target.value)}
+                  maxLength={500}
+                  autoComplete="off"
+                  placeholder="e.g. Quantities changed as per the supplier's revised quotation"
+                />
+              </Field>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Link href={cancelHref} className={buttonVariants({ variant: "outline" })}>
           Cancel
         </Link>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="animate-spin" />}
-          {isSubmitting ? "Saving…" : "Save purchase order"}
+          {isSubmitting ? "Saving…" : revision && asRevision ? `Save as ${revision.nextNumber}` : "Save purchase order"}
         </Button>
       </div>
     </form>

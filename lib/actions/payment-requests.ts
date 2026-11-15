@@ -12,6 +12,7 @@ import {
   OTHERS_ITEM,
   PAYABLE_PO_STATUSES,
   PAYMENT_REQUEST_STATUSES,
+  VOID_PAYMENT_REQUEST_STATUSES,
   PAYMENT_REQUEST_STATUS_LABELS,
 } from "@/lib/payment-request-options";
 import { prisma } from "@/lib/prisma";
@@ -44,6 +45,7 @@ function assertCurrencyPrecision(amount: string, currency: string) {
 }
 
 const orNull = (value: string) => (value === "" ? null : value);
+const isVoid = (status: string) => (VOID_PAYMENT_REQUEST_STATUSES as readonly string[]).includes(status);
 
 function toData(input: PaymentRequestInput) {
   return {
@@ -164,7 +166,7 @@ export async function updatePaymentRequest(id: string, input: unknown) {
           });
           currency = order.currency;
           assertCurrencyPrecision(data.amount, currency);
-          if (current.status !== "REJECTED") {
+          if (!isVoid(current.status)) {
             await assertWithinBalance(tx, current.purchaseOrderId, new Prisma.Decimal(data.amount), id);
           }
         } else {
@@ -194,8 +196,8 @@ export async function setPaymentRequestStatus(id: string, status: string) {
           where: { id },
           select: { status: true, amount: true, purchaseOrderId: true },
         });
-        // Moving out of Rejected puts the amount back against the PO.
-        if (current.purchaseOrderId && current.status === "REJECTED" && status !== "REJECTED") {
+        // Moving out of Rejected/Cancelled puts the amount back against the PO.
+        if (current.purchaseOrderId && isVoid(current.status) && !isVoid(status)) {
           await lockPurchaseOrder(tx, current.purchaseOrderId);
           await assertWithinBalance(tx, current.purchaseOrderId, current.amount, id);
         }

@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { fromSnapshot, PO_DOCUMENT_INCLUDE } from "@/lib/purchase-order-revisions";
 import { getAuthContext } from "@/lib/session";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
+import { projectName } from "@/lib/projects";
 
 /** Printable A4 PDF of a purchase order, for users who can view it. */
 export async function GET(request: Request, { params }: RouteContext<"/purchase-orders/[id]/pdf">) {
@@ -76,7 +77,7 @@ export async function GET(request: Request, { params }: RouteContext<"/purchase-
       orderDate,
       mrNumber: order.materialRequest?.number ?? null,
       orderedBy: order.department.name,
-      projectName: order.project.name,
+      projectName: projectName(order.project),
       projectCode: order.project.code,
       subject: order.category.name,
       deliverTo: order.deliverTo,

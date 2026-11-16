@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -104,6 +105,20 @@ export function GrnForm({
             <ReadOnly label="Project code">{header.projectCode}</ReadOnly>
             <ComboboxField control={control} name="departmentId" label="Ordered by (Department)" options={departments} placeholder="Search departments" required />
             <TextField control={control} name="invoiceNo" label="Invoice No" autoComplete="off" />
+            <Controller
+              control={control}
+              name="deliveryNote"
+              render={({ field }) => (
+                <Field orientation="horizontal" className="self-end pb-1.5">
+                  <Checkbox
+                    id="grn-delivery-note"
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                  <FieldLabel htmlFor="grn-delivery-note">Delivery note received</FieldLabel>
+                </Field>
+              )}
+            />
             <div className="md:col-span-2 lg:col-span-4">
               <ChoiceField control={control} name="deliveredBy" label="Delivered by" options={DELIVERY_METHODS} />
             </div>

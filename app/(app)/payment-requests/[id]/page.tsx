@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/master-data/delete-button";
+import { FinancePanel } from "@/components/payment-requests/finance-panel";
 import { StatusBadge } from "@/components/status/status-badge";
 import { StatusMenu } from "@/components/status/status-menu";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +18,12 @@ import {
 } from "@/components/ui/card";
 import {
   deletePaymentRequestFromDetail,
+  setPaymentRequestFinance,
   setPaymentRequestStatus,
 } from "@/lib/actions/payment-requests";
 import { amountInWords } from "@/lib/amount-in-words";
 import { getPaymentRequest } from "@/lib/data/payment-requests";
+import { toIsoDate } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import {
   LOCKED_PAYMENT_REQUEST_STATUSES,
@@ -32,6 +35,7 @@ import {
   priorityLabel,
 } from "@/lib/payment-request-options";
 import { requirePermission } from "@/lib/session";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Payment request" };
 
@@ -47,7 +51,7 @@ function Detail({ label, value, className }: { label: string; value: React.React
 }
 
 export default async function Page({ params }: PageProps<"/payment-requests/[id]">) {
-  const { can, formatDate } = await requirePermission("payment_requests:view");
+  const { can, formatDate, settings } = await requirePermission("payment_requests:view");
   const { id } = await params;
   const request = await getPaymentRequest(id);
   if (!request) notFound();
@@ -143,11 +147,12 @@ export default async function Page({ params }: PageProps<"/payment-requests/[id]
                 }
               />
               <Detail label="In favor of" value={request.inFavorOf} />
-              <Detail label="Project" value={`${request.project.code} – ${request.project.name}`} />
+              <Detail label="Project" value={projectLabel(request.project)} />
               <Detail label="Type of payment" value={paymentTypeLabel(request.paymentType)} />
               <Detail label="Priority" value={priorityLabel(request.priority)} />
               <Detail label="Invoice No" value={request.invoiceNo} />
               <Detail label="Quotation No" value={request.quotationNo} />
+              <Detail label="Claim No" value={request.claimNo} />
               <Detail label="Description" value={request.description} className="sm:col-span-2" />
               <Detail label="Note" value={request.note} className="sm:col-span-2" />
             </dl>
@@ -183,6 +188,37 @@ export default async function Page({ params }: PageProps<"/payment-requests/[id]
               ))}
             </CardContent>
           </Card>
+          {can("payment_requests:status") ? (
+            <FinancePanel
+              // Remount after a save elsewhere so the dates shown are current.
+              key={request.updatedAt.getTime()}
+              action={setPaymentRequestFinance.bind(null, request.id)}
+              dateFormat={settings.dateFormat}
+              defaultValues={{
+                financeSubmittedOn: request.financeSubmittedOn ? toIsoDate(request.financeSubmittedOn) : "",
+                invoiceSubmittedOn: request.invoiceSubmittedOn ? toIsoDate(request.invoiceSubmittedOn) : "",
+                trackerRemarks: request.trackerRemarks ?? "",
+              }}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Finance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <Detail
+                    label="PR submitted to Finance"
+                    value={request.financeSubmittedOn && formatDate.calendarDate(request.financeSubmittedOn)}
+                  />
+                  <Detail
+                    label="Invoice submitted to Finance"
+                    value={request.invoiceSubmittedOn && formatDate.calendarDate(request.invoiceSubmittedOn)}
+                  />
+                </dl>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

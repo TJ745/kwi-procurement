@@ -23,6 +23,8 @@ type DateFieldProps<T extends FieldValues> = {
   /** date-fns pattern from Settings, e.g. "d MMM yyyy". */
   displayFormat: string;
   required?: boolean;
+  /** Offer a "Clear" button (the empty value is ""). */
+  clearable?: boolean;
 };
 
 const ISO = "yyyy-MM-dd";
@@ -34,6 +36,7 @@ export function DateField<T extends FieldValues>({
   label,
   displayFormat,
   required,
+  clearable,
 }: DateFieldProps<T>) {
   const [open, setOpen] = useState(false);
 
@@ -86,6 +89,23 @@ export function DateField<T extends FieldValues>({
                     setOpen(false);
                   }}
                 />
+                {clearable && valid && (
+                  <div className="border-t p-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        field.onChange("");
+                        field.onBlur();
+                        setOpen(false);
+                      }}
+                    >
+                      Clear date
+                    </Button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
             {fieldState.error && <FieldError errors={[fieldState.error]} />}

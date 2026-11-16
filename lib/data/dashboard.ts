@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { MATERIAL_REQUEST_STATUS_LABELS } from "@/lib/validation/material-request";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
+import { projectLabel } from "@/lib/projects";
 
 const ZERO = new Prisma.Decimal(0);
 const COMMITTED_PO = ["APPROVED", "ISSUED", "CLOSED"] as const;
@@ -207,11 +208,11 @@ export async function getTopProjects() {
   const months = recentMonths(settings.timeZone, 12);
   const orders = await prisma.purchaseOrder.findMany({
     where: { status: { in: [...COMMITTED_PO] }, orderDate: { gte: monthStart(months[0].key) }, currency: settings.currency },
-    select: { total: true, project: { select: { id: true, code: true, name: true } } },
+    select: { total: true, project: { select: { id: true, code: true, name: true, client: true } } },
   });
   const sums = new Map<string, { label: string; total: Prisma.Decimal }>();
   for (const o of orders) {
-    const entry = sums.get(o.project.id) ?? { label: `${o.project.code} – ${o.project.name}`, total: ZERO };
+    const entry = sums.get(o.project.id) ?? { label: projectLabel(o.project), total: ZERO };
     entry.total = entry.total.plus(o.total);
     sums.set(o.project.id, entry);
   }

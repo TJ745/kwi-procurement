@@ -185,6 +185,8 @@ model Project {
   id               String            @id @default(cuid())
   code             String            @unique @db.Citext
   name             String
+  // Client the project is carried out for (shown on the PO Tracker).
+  client    String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   materialRequests MaterialRequest[]
@@ -461,6 +463,13 @@ model PaymentRequest {
   amount          Decimal              @db.Decimal(18, 3)
   invoiceNo       String?
   quotationNo     String?
+  // Sub-contract claim reference, if any.
+  claimNo         String?
+  // Finance tracking (PO Tracker): when the request and the invoice went to Finance.
+  financeSubmittedOn DateTime?        @db.Date
+  invoiceSubmittedOn DateTime?        @db.Date
+  // Free-text remarks shown only on the PO Tracker.
+  trackerRemarks     String?
   // Printed under "Note:-" on the PDF.
   note            String?
   createdById     String
@@ -510,6 +519,8 @@ model GoodsReceipt {
   supplierName    String
   supplierAddress String?
   invoiceNo       String?
+  // The supplier\'s delivery note came with the goods.
+  deliveryNote    Boolean            @default(false)
   deliveredBy     DeliveryMethod
   remarks         String?
   createdById     String

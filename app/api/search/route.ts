@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SearchGroup } from "@/lib/search";
 import { getAuthContext } from "@/lib/session";
+import { projectLabel } from "@/lib/projects";
 
 const LIMIT = 5;
 
@@ -39,14 +40,14 @@ export async function GET(request: NextRequest) {
           },
           orderBy: { createdAt: "desc" },
           take: LIMIT,
-          select: { id: true, number: true, project: { select: { code: true } }, department: { select: { name: true } } },
+          select: { id: true, number: true, project: { select: { code: true, name: true, client: true } }, department: { select: { name: true } } },
         })
         .then((rows) => ({
           label: "Material requests",
           results: rows.map((row) => ({
             id: row.id,
             title: row.number,
-            subtitle: `${row.project.code} · ${row.department.name}`,
+            subtitle: `${projectLabel(row.project)} · ${row.department.name}`,
             href: `/material-requests/${row.id}`,
           })),
         })),
@@ -138,12 +139,12 @@ export async function GET(request: NextRequest) {
   if (can("projects:view")) {
     searches.push(
       prisma.project
-        .findMany({ where: { OR: [{ code: q }, { name: q }] }, orderBy: { code: "asc" }, take: LIMIT })
+        .findMany({ where: { OR: [{ code: q }, { name: q }, { client: q }] }, orderBy: { code: "asc" }, take: LIMIT })
         .then((rows) => ({
           label: "Projects",
           results: rows.map((row) => ({
             id: row.id,
-            title: `${row.code} – ${row.name}`,
+            title: projectLabel(row),
             href: `/projects?q=${encodeURIComponent(row.code)}`,
           })),
         })),

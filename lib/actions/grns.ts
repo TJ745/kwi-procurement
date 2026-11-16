@@ -73,6 +73,7 @@ function toHeader(input: GrnInput) {
     supplierName: input.supplierName,
     supplierAddress: orNull(input.supplierAddress),
     invoiceNo: orNull(input.invoiceNo),
+    deliveryNote: input.deliveryNote,
     deliveredBy: input.deliveredBy,
     remarks: orNull(input.remarks),
   };

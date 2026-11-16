@@ -8,12 +8,14 @@ import { PAYMENT_REQUEST_STATUS_LABELS, priorityLabel } from "@/lib/payment-requ
 import type {
   mrsAwaitingPo,
   paymentsSummary,
+  poTracker,
   pendingDeliveries,
   projectMaterials,
   spendSummary,
   supplierStatement,
 } from "@/lib/reports";
 import { paymentTermLabel } from "@/lib/validation/master-data";
+import { projectLabel } from "@/lib/projects";
 
 type Common = { formatDate: DateFormatter; print?: boolean };
 
@@ -120,7 +122,7 @@ export function ProjectMaterialsView({
   return (
     <div className="flex flex-col gap-6">
       {data.map((project) => (
-        <Section key={project.id} title={`${project.code} – ${project.name}`} subtitle={`${project.items.length} item${project.items.length === 1 ? "" : "s"}`}>
+        <Section key={project.id} title={project.label} subtitle={`${project.items.length} item${project.items.length === 1 ? "" : "s"}`}>
           <table className="report-table min-w-[40rem]">
             <thead>
               <tr>
@@ -184,7 +186,7 @@ export function PendingDeliveriesView({
             </td>
             <td className="whitespace-nowrap">{formatDate.calendarDate(line.purchaseOrder.orderDate)}</td>
             <td>{line.purchaseOrder.supplierName}</td>
-            <td>{line.purchaseOrder.project.code}</td>
+            <td>{projectLabel(line.purchaseOrder.project)}</td>
             <td>{line.name}</td>
             <td>{line.unit}</td>
             <td className="num">{formatQuantity(line.quantity)}</td>
@@ -293,7 +295,7 @@ export function MrsAwaitingPoView({
             </td>
             <td className="whitespace-nowrap">{formatDate.calendarDate(request.requestDate)}</td>
             <td className="num font-medium">{request.ageDays}</td>
-            <td>{`${request.project.code} – ${request.project.name}`}</td>
+            <td>{projectLabel(request.project)}</td>
             <td>{request.department.name}</td>
             <td>{request.category.name}</td>
             <td className="num">{request._count.lines}</td>
@@ -301,5 +303,118 @@ export function MrsAwaitingPoView({
         ))}
       </tbody>
     </table>
+  );
+}
+
+// --- PO tracker ---------------------------------------------------------------------
+
+function YesNo({ value }: { value: boolean }) {
+  return <span className={value ? "font-medium" : "text-muted-foreground print:text-neutral-600"}>{value ? "Yes" : "No"}</span>;
+}
+
+export function PoTrackerView({
+  data,
+  formatDate,
+  print,
+}: Common & { data: Awaited<ReturnType<typeof poTracker>> }) {
+  if (data.rows.length === 0) return <Empty>No payment requests match these filters.</Empty>;
+  const date = (value: Date | null) => (value ? formatDate.calendarDate(value) : "—");
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <span className="text-muted-foreground print:text-neutral-600">
+          {data.rows.length} payment request{data.rows.length === 1 ? "" : "s"} · {data.completeCount} complete · total
+        </span>
+        {data.totals.map(([currency, amount]) => (
+          <span key={currency} className="font-semibold tabular-nums">{formatMoney(amount.toString(), currency)}</span>
+        ))}
+      </div>
+      <div className="overflow-x-auto print:overflow-visible">
+        <table className="report-table min-w-[110rem] print:min-w-0 print:text-[9px]">
+          <thead>
+            <tr>
+              <th className="num">Sr No</th>
+              <th>Material Request</th>
+              <th>Purchase Order</th>
+              <th>Payment Request</th>
+              <th className="num">PR Amount</th>
+              <th>PR Date</th>
+              <th>GRN / Claim No</th>
+              <th>Supplier Name</th>
+              <th>Invoice</th>
+              <th>Delivery Note</th>
+              <th>Client Name</th>
+              <th>Project</th>
+              <th>PR to Finance</th>
+              <th>Invoice No</th>
+              <th>Invoice Submitted</th>
+              <th>Invoice to Finance</th>
+              <th>PO Status</th>
+              <th className="min-w-56">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.rows.map((row, index) => (
+              <tr key={row.id}>
+                <td className="num">{index + 1}</td>
+                <td className="whitespace-nowrap">
+                  {row.purchaseOrder?.materialRequest ? (
+                    <Ref href={`/material-requests/${row.purchaseOrder.materialRequest.id}`} print={print}>
+                      {row.purchaseOrder.materialRequest.number}
+                    </Ref>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="whitespace-nowrap">
+                  {row.purchaseOrder ? (
+                    <Ref href={`/purchase-orders/${row.purchaseOrder.id}`} print={print}>{row.purchaseOrder.number}</Ref>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="whitespace-nowrap">
+                  <Ref href={`/payment-requests/${row.id}`} print={print}>{row.number}</Ref>
+                </td>
+                <td className="num whitespace-nowrap">{formatMoney(row.amount.toString(), row.currency)}</td>
+                <td className="whitespace-nowrap">{date(row.requestDate)}</td>
+                <td>
+                  <div className="flex flex-col">
+                    {row.grns.map((grn) => (
+                      <Ref key={grn.id} href={`/grn/${grn.id}`} print={print}>{grn.number}</Ref>
+                    ))}
+                    {row.claimNo && <span>Claim: {row.claimNo}</span>}
+                    {row.grns.length === 0 && !row.claimNo && "—"}
+                  </div>
+                </td>
+                <td>{row.supplierName}</td>
+                <td><YesNo value={Boolean(row.invoiceNo)} /></td>
+                <td><YesNo value={row.deliveryNote} /></td>
+                <td>{row.project.client ?? "—"}</td>
+                <td>{`${row.project.name} (${row.project.code})`}</td>
+                <td className="whitespace-nowrap">{date(row.financeSubmittedOn)}</td>
+                <td>{row.invoiceNo ?? "—"}</td>
+                <td>
+                  {row.invoiceSubmittedOn ? (
+                    <span className="font-medium">Submitted</span>
+                  ) : (
+                    <span className="text-muted-foreground print:text-neutral-600">Not submitted</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap">{date(row.invoiceSubmittedOn)}</td>
+                <td className="whitespace-nowrap">
+                  {row.complete ? (
+                    <span className="font-medium text-emerald-700 dark:text-emerald-400 print:text-neutral-900">Complete</span>
+                  ) : (
+                    <span className="text-muted-foreground print:text-neutral-600">Not complete</span>
+                  )}
+                </td>
+                <td className="whitespace-pre-line">{row.trackerRemarks ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

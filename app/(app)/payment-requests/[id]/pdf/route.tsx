@@ -12,6 +12,7 @@ import { PAYMENT_REQUEST_STATUS_LABELS, VOID_PAYMENT_REQUEST_STATUSES } from "@/
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { projectLabel } from "@/lib/projects";
 
 const isVoid = (status: PaymentRequestStatus) => (VOID_PAYMENT_REQUEST_STATUSES as readonly string[]).includes(status);
 
@@ -79,7 +80,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
     prisma.paymentRequest.findUnique({
       where: { id },
       include: {
-        project: { select: { code: true, name: true } },
+        project: { select: { code: true, name: true, client: true } },
         purchaseOrder: {
           select: {
             number: true,
@@ -123,7 +124,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
     priority: request.priority,
     description: request.description,
     inFavorOf: request.inFavorOf,
-    project: `${request.project.name} (${request.project.code})`,
+    project: projectLabel(request.project),
     amount: formatMoney(request.amount, request.currency),
     amountInWords: amountInWords(request.amount, request.currency),
     invoiceNo: request.invoiceNo,

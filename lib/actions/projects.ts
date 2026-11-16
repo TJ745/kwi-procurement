@@ -16,7 +16,7 @@ export async function createProject(input: unknown) {
     input,
     unique,
     success: "Project created.",
-    run: (data) => prisma.project.create({ data }),
+    run: (data) => prisma.project.create({ data: { ...data, client: data.client || null } }),
   });
 }
 
@@ -28,7 +28,7 @@ export async function updateProject(id: string, input: unknown) {
     input: { ...(input as object), id },
     unique,
     success: "Project updated.",
-    run: ({ id, ...data }) => prisma.project.update({ where: { id }, data }),
+    run: ({ id, ...data }) => prisma.project.update({ where: { id }, data: { ...data, client: data.client || null } }),
   });
 }
 

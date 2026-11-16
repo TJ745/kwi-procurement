@@ -34,6 +34,7 @@ import {
   MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUS_LABELS,
 } from "@/lib/validation/material-request";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Material request" };
 
@@ -130,7 +131,7 @@ export default async function Page({ params }: PageProps<"/material-requests/[id
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Detail label="Request date" value={formatDate.calendarDate(request.requestDate)} />
-            <Detail label="Project" value={`${request.project.code} – ${request.project.name}`} />
+            <Detail label="Project" value={projectLabel(request.project)} />
             <Detail label="Requested by (Department)" value={request.department.name} />
             <Detail label="Category" value={request.category.name} />
             <Detail label="Supplier" value={request.supplier?.name} />

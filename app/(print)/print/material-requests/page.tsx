@@ -6,6 +6,7 @@ import { listMaterialRequests, parseStatusFilter } from "@/lib/data/material-req
 import { describeFilters } from "@/lib/print";
 import { requirePermission } from "@/lib/session";
 import { MATERIAL_REQUEST_STATUS_LABELS } from "@/lib/validation/material-request";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Print · Material Requests" };
 
@@ -30,7 +31,7 @@ export default async function Page({ searchParams }: PageProps<"/print/material-
           { header: "#", cell: (_row, index) => index + 1, className: "w-8" },
           { header: "Request No", cell: (row) => row.number },
           { header: "Date", cell: (row) => formatDate.calendarDate(row.requestDate) },
-          { header: "Project", cell: (row) => `${row.project.code} – ${row.project.name}` },
+          { header: "Project", cell: (row) => projectLabel(row.project) },
           { header: "Requested by", cell: (row) => row.department.name },
           { header: "Category", cell: (row) => row.category.name },
           { header: "Lines", cell: (row) => row._count.lines, align: "right" },

@@ -7,6 +7,7 @@ import { type ListParams, paginate } from "@/lib/data/list-params";
 import { requestedAgainst } from "@/lib/payment-balance";
 import { PAYABLE_PO_STATUSES, PAYMENT_REQUEST_STATUSES } from "@/lib/payment-request-options";
 import { prisma } from "@/lib/prisma";
+import { PROJECT_LABEL_SELECT, projectLabel } from "@/lib/projects";
 import { requirePermission, requireUser } from "@/lib/session";
 
 const contains = (query: string) =>
@@ -54,7 +55,7 @@ export async function listPaymentRequests(
           inFavorOf: true,
           currency: true,
           amount: true,
-          project: { select: { code: true } },
+          project: { select: { code: true, name: true, client: true } },
           purchaseOrder: { select: { number: true } },
         },
         ...args,
@@ -67,7 +68,7 @@ export async function getPaymentRequest(id: string) {
   return prisma.paymentRequest.findUnique({
     where: { id },
     include: {
-      project: { select: { id: true, code: true, name: true } },
+      project: { select: { id: true, code: true, name: true, client: true } },
       purchaseOrder: { select: { id: true, number: true, total: true, currency: true } },
       createdBy: { select: { name: true } },
     },
@@ -79,11 +80,11 @@ export async function getPaymentRequestOptions() {
   const { can } = await requireUser();
   if (!can("payment_requests:create") && !can("payment_requests:edit")) forbidden();
   const [projects, suppliers] = await Promise.all([
-    prisma.project.findMany({ orderBy: { code: "asc" }, select: { id: true, code: true, name: true } }),
+    prisma.project.findMany({ orderBy: { code: "asc" }, select: PROJECT_LABEL_SELECT }),
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   return {
-    projects: projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` })),
+    projects: projects.map((p) => ({ value: p.id, label: projectLabel(p) })),
     suppliers: suppliers.map((s) => ({ value: s.id, label: s.name })),
   };
 }

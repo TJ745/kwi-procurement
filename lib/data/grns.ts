@@ -67,7 +67,7 @@ export async function listGrns({ query, page, pageSize }: ListParams, status: Go
           status: true,
           supplierName: true,
           deliveredBy: true,
-          project: { select: { code: true } },
+          project: { select: { code: true, name: true, client: true } },
           purchaseOrder: { select: { number: true } },
           _count: { select: { lines: true } },
         },
@@ -81,7 +81,7 @@ export async function getGrn(id: string) {
   return prisma.goodsReceipt.findUnique({
     where: { id },
     include: {
-      project: { select: { code: true, name: true } },
+      project: { select: { code: true, name: true, client: true } },
       department: { select: { id: true, name: true } },
       purchaseOrder: {
         select: { id: true, number: true, materialRequest: { select: { id: true, number: true } } },
@@ -128,7 +128,7 @@ export async function getPurchaseOrderForGrn(purchaseOrderId: string, excludeGrn
       departmentId: true,
       supplierName: true,
       supplierAddress: true,
-      project: { select: { code: true, name: true } },
+      project: { select: { code: true, name: true, client: true } },
       materialRequest: { select: { number: true } },
       lines: { orderBy: { lineNo: "asc" } },
     },

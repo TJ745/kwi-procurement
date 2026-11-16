@@ -35,6 +35,7 @@ export const paymentRequestSchema = z
       .refine((value) => Number(value) > 0, "Amount must be greater than 0."),
     invoiceNo: text("Invoice No", 100),
     quotationNo: text("Quotation No", 100),
+    claimNo: text("Claim No", 100),
     note: text("Note", 2000),
   })
   .refine((value) => !value.items.includes(OTHERS_ITEM) || value.otherDetails.length > 0, {
@@ -43,3 +44,14 @@ export const paymentRequestSchema = z
   });
 
 export type PaymentRequestInput = z.infer<typeof paymentRequestSchema>;
+
+const optionalDate = z.union([z.literal(""), isoDate]);
+
+/** Finance tracking dates and PO Tracker remarks, set from the payment request page. */
+export const paymentRequestFinanceSchema = z.object({
+  financeSubmittedOn: optionalDate,
+  invoiceSubmittedOn: optionalDate,
+  trackerRemarks: text("Remarks", 1000),
+});
+
+export type PaymentRequestFinanceInput = z.infer<typeof paymentRequestFinanceSchema>;

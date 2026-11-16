@@ -32,6 +32,7 @@ export const grnSchema = z
     supplierName: text("Supplier name", 200).min(1, "Supplier name is required."),
     supplierAddress: text("Address", 500),
     invoiceNo: text("Invoice No", 100),
+    deliveryNote: z.boolean(),
     deliveredBy: z.enum(DELIVERY_METHODS.map((option) => option.value), { message: "Select how it was delivered." }),
     remarks: text("Remarks", 2000),
     lines: z.array(grnLineSchema).min(1).max(200),

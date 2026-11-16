@@ -7,6 +7,7 @@ import { updateGrn } from "@/lib/actions/grns";
 import { getGrn, getGrnOptions, getPurchaseOrderForGrn } from "@/lib/data/grns";
 import { toIsoDate } from "@/lib/format";
 import { requirePermission } from "@/lib/session";
+import { projectName } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Edit GRN" };
 
@@ -35,7 +36,7 @@ export default async function Page({ params }: PageProps<"/grn/[id]/edit">) {
           number: grn.number,
           poNumber: grn.purchaseOrder.number,
           mrNumber: grn.purchaseOrder.materialRequest?.number ?? null,
-          projectName: grn.project.name,
+          projectName: projectName(grn.project),
           projectCode: grn.project.code,
         }}
         defaultValues={{
@@ -44,6 +45,7 @@ export default async function Page({ params }: PageProps<"/grn/[id]/edit">) {
           supplierName: grn.supplierName,
           supplierAddress: grn.supplierAddress ?? "",
           invoiceNo: grn.invoiceNo ?? "",
+          deliveryNote: grn.deliveryNote,
           deliveredBy: grn.deliveredBy,
           remarks: grn.remarks ?? "",
           lines: source.lines.map((line) => {

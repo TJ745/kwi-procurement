@@ -17,7 +17,7 @@ export function ProjectForm({ action, defaultValues }: ProjectFormProps) {
   const { close } = useFormDialog();
   const { form, onSubmit } = useActionForm({
     schema: projectSchema,
-    defaultValues: defaultValues ?? { code: "", name: "" },
+    defaultValues: defaultValues ?? { code: "", name: "", client: "" },
     action,
     onSuccess: close,
   });
@@ -27,6 +27,7 @@ export function ProjectForm({ action, defaultValues }: ProjectFormProps) {
       <FieldGroup>
         <TextField control={form.control} name="code" label="Code" required autoFocus autoComplete="off" />
         <TextField control={form.control} name="name" label="Name" required autoComplete="off" />
+        <TextField control={form.control} name="client" label="Client" autoComplete="off" />
       </FieldGroup>
       <FormActions isSubmitting={form.formState.isSubmitting} />
     </form>

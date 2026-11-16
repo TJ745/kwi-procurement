@@ -32,6 +32,7 @@ export const recordIdSchema = z.string().min(1).max(64);
 export const projectSchema = z.object({
   code: required("Code", 50),
   name: required("Name", 200),
+  client: optional("Client", 200),
 });
 
 export const departmentSchema = z.object({

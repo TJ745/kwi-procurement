@@ -6,6 +6,7 @@ import { parseListParams, printParams } from "@/lib/data/list-params";
 import { GRN_STATUS_LABELS, deliveryMethodLabel } from "@/lib/grn";
 import { describeFilters } from "@/lib/print";
 import { requirePermission } from "@/lib/session";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Print · Goods Received Notes" };
 
@@ -32,7 +33,7 @@ export default async function Page({ searchParams }: PageProps<"/print/grn">) {
           { header: "Date", cell: (row) => formatDate.calendarDate(row.receiptDate) },
           { header: "From", cell: (row) => row.supplierName },
           { header: "PO Ref", cell: (row) => row.purchaseOrder.number },
-          { header: "Project", cell: (row) => row.project.code },
+          { header: "Project", cell: (row) => projectLabel(row.project) },
           { header: "Delivered by", cell: (row) => deliveryMethodLabel(row.deliveredBy) },
           { header: "Items", cell: (row) => row._count.lines, align: "right" },
           { header: "Status", cell: (row) => GRN_STATUS_LABELS[row.status] },

@@ -26,6 +26,7 @@ import {
   MATERIAL_REQUEST_STATUSES,
   MATERIAL_REQUEST_STATUS_LABELS,
 } from "@/lib/validation/material-request";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Material Requests" };
 
@@ -99,7 +100,7 @@ export default async function Page({ searchParams }: PageProps<"/material-reques
                   {formatDate.calendarDate(request.requestDate)}
                 </TableCell>
                 <TableCell className="hidden max-w-60 truncate md:table-cell">
-                  {request.project.code} – {request.project.name}
+                  {projectLabel(request.project)}
                 </TableCell>
                 <TableCell className="hidden max-w-48 truncate lg:table-cell">
                   {request.department.name}

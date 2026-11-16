@@ -21,6 +21,7 @@ export default async function Page({ searchParams }: PageProps<"/print/projects"
           { header: "#", cell: (_row, index) => index + 1, className: "w-10" },
           { header: "Code", cell: (row) => row.code },
           { header: "Name", cell: (row) => row.name },
+          { header: "Client", cell: (row) => row.client ?? "—" },
           { header: "Last updated", cell: (row) => formatDate.date(row.updatedAt) },
         ]}
       />

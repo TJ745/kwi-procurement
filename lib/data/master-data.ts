@@ -11,7 +11,7 @@ const contains = (query: string) =>
 export async function listProjects({ query, page, pageSize }: ListParams) {
   await requirePermission("projects:view");
   const where: Prisma.ProjectWhereInput = query
-    ? { OR: [{ code: contains(query) }, { name: contains(query) }] }
+    ? { OR: [{ code: contains(query) }, { name: contains(query) }, { client: contains(query) }] }
     : {};
   return paginate(
     { page, pageSize },

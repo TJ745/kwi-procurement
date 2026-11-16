@@ -4,6 +4,7 @@ import {
   MrsAwaitingPoView,
   PaymentsSummaryView,
   PendingDeliveriesView,
+  PoTrackerView,
   ProjectMaterialsView,
   SpendView,
   SupplierStatementView,
@@ -13,10 +14,13 @@ import type { SearchParams } from "@/lib/data/list-params";
 import type { ReportSlug } from "@/lib/report-registry";
 import {
   mrsAwaitingPo,
+  PO_TRACKER_COMPLETION,
   parseDateRange,
   paymentsSummary,
   pendingDeliveries,
+  pickCompletion,
   pickId,
+  poTracker,
   projectMaterials,
   reportFilterOptions,
   spendSummary,
@@ -51,6 +55,39 @@ export async function loadReport(
   const common = { formatDate, print };
 
   switch (slug) {
+    case "po-tracker": {
+      const options = await reportFilterOptions();
+      const completion = pickCompletion(searchParams.po);
+      const data = await poTracker(range, { projectId, supplierId, completion });
+      const supplier = options.suppliers.find((s) => s.value === supplierId);
+      const project = options.projects.find((p) => p.value === projectId);
+      return {
+        filters: (
+          <ReportFilters
+            range={range}
+            supplier={{ options: options.suppliers, value: supplierId }}
+            project={{ options: options.projects, value: projectId }}
+            choices={[
+              {
+                name: "po",
+                label: "PO status",
+                allLabel: "All",
+                options: Object.entries(PO_TRACKER_COMPLETION).map(([value, label]) => ({ value, label })),
+                value: completion,
+              },
+            ]}
+          />
+        ),
+        filterLabels: [
+          supplier ? `Supplier: ${supplier.label}` : "All suppliers",
+          project ? `Project: ${project.label}` : "All projects",
+          completion ? `PO status: ${PO_TRACKER_COMPLETION[completion]}` : "",
+          `Period: ${rangeLabel}`,
+        ].filter(Boolean),
+        body: <PoTrackerView data={data} {...common} />,
+        query: query({ supplier: supplierId, project: projectId, po: completion, from: range.from, to: range.to }),
+      };
+    }
     case "supplier-statement": {
       const options = await reportFilterOptions();
       const data = supplierId ? await supplierStatement(supplierId, range) : null;

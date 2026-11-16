@@ -17,6 +17,7 @@ import { createProject, deleteProject, updateProject } from "@/lib/actions/proje
 import { parseListParams } from "@/lib/data/list-params";
 import { listProjects } from "@/lib/data/master-data";
 import { getNavItem } from "@/lib/navigation";
+import { projectLabel } from "@/lib/projects";
 import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Projects" };
@@ -52,13 +53,14 @@ export default async function Page({ searchParams }: PageProps<"/projects">) {
         result={result}
         canCreate={canCreate}
         createLabel={CREATE_LABEL}
-        searchPlaceholder="Search by code or name"
+        searchPlaceholder="Search by code, name or client"
       >
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-40 pl-4">Code</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead className="hidden sm:table-cell">Client</TableHead>
               <TableHead className="hidden md:table-cell">Last updated</TableHead>
               {(canEdit || canDelete) && (
                 <TableHead className="w-24 pr-4 text-right">
@@ -72,6 +74,7 @@ export default async function Page({ searchParams }: PageProps<"/projects">) {
               <TableRow key={project.id}>
                 <TableCell className="pl-4 font-medium">{project.code}</TableCell>
                 <TableCell className="max-w-80 truncate">{project.name}</TableCell>
+                <TableCell className="hidden max-w-60 truncate text-muted-foreground sm:table-cell">{project.client ?? "—"}</TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
                   {formatDate.date(project.updatedAt)}
                 </TableCell>
@@ -86,14 +89,14 @@ export default async function Page({ searchParams }: PageProps<"/projects">) {
                         >
                           <ProjectForm
                             action={updateProject.bind(null, project.id)}
-                            defaultValues={{ code: project.code, name: project.name }}
+                            defaultValues={{ code: project.code, name: project.name, client: project.client ?? "" }}
                           />
                         </FormDialog>
                       )}
                       {canDelete && (
                         <DeleteButton
                           entityLabel="project"
-                          itemLabel={`${project.code} – ${project.name}`}
+                          itemLabel={projectLabel(project)}
                           action={deleteProject.bind(null, project.id)}
                         />
                       )}

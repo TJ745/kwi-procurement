@@ -17,6 +17,7 @@ import { isSuperAdmin } from "@/lib/roles";
 import { paymentTermLabel } from "@/lib/validation/master-data";
 import { MATERIAL_REQUEST_STATUS_LABELS } from "@/lib/validation/material-request";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
+import { projectLabel } from "@/lib/projects";
 
 /** Audited record types and how they are named in the log. */
 export const AUDIT_ENTITIES = {
@@ -64,7 +65,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
   switch (entity) {
     case "project": {
       const r = await prisma.project.findUnique({ where: { id } });
-      return r && { label: r.code, fields: { code: field("Code", r.code), name: field("Name", r.name) } };
+      return r && { label: r.code, fields: { code: field("Code", r.code), name: field("Name", r.name), client: field("Client", r.client) } };
     }
     case "department":
     case "category": {
@@ -102,7 +103,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
         fields: {
           status: field("Status", MATERIAL_REQUEST_STATUS_LABELS[r.status]),
           requestDate: field("Request date", toIsoDate(r.requestDate)),
-          project: field("Project", `${r.project.code} – ${r.project.name}`),
+          project: field("Project", projectLabel(r.project)),
           department: field("Requested by", r.department.name),
           category: field("Category", r.category.name),
           supplier: field("Supplier", r.supplier?.name),
@@ -124,7 +125,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           status: field("Status", PURCHASE_ORDER_STATUS_LABELS[r.status]),
           orderDate: field("Order date", toIsoDate(r.orderDate)),
           materialRequest: field("MR number", r.materialRequest?.number),
-          project: field("Project", `${r.project.code} – ${r.project.name}`),
+          project: field("Project", projectLabel(r.project)),
           department: field("Ordered by", r.department.name),
           category: field("Subject", r.category.name),
           deliverTo: field("Deliver to", r.deliverTo),
@@ -151,7 +152,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           status: field("Status", PAYMENT_REQUEST_STATUS_LABELS[r.status]),
           requestDate: field("Date", toIsoDate(r.requestDate)),
           purchaseOrder: field("PO ref", r.purchaseOrder?.number),
-          project: field("Project", `${r.project.code} – ${r.project.name}`),
+          project: field("Project", projectLabel(r.project)),
           supplier: field("Supplier", r.supplier?.name),
           inFavorOf: field("In favor of", r.inFavorOf),
           description: field("Description", clip(r.description)),
@@ -161,6 +162,10 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           amount: field("Amount", formatMoney(r.amount.toString(), r.currency)),
           invoiceNo: field("Invoice no", r.invoiceNo),
           quotationNo: field("Quotation no", r.quotationNo),
+          claimNo: field("Claim no", r.claimNo),
+          financeSubmittedOn: field("Submitted to Finance", r.financeSubmittedOn && toIsoDate(r.financeSubmittedOn)),
+          invoiceSubmittedOn: field("Invoice submitted to Finance", r.invoiceSubmittedOn && toIsoDate(r.invoiceSubmittedOn)),
+          trackerRemarks: field("PO tracker remarks", r.trackerRemarks && clip(r.trackerRemarks)),
           note: field("Note", r.note && clip(r.note)),
         },
       };
@@ -181,6 +186,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           supplierAddress: field("Address", r.supplierAddress),
           invoiceNo: field("Invoice no", r.invoiceNo),
           deliveredBy: field("Delivered by", deliveryMethodLabel(r.deliveredBy)),
+          deliveryNote: field("Delivery note", r.deliveryNote ? "Received" : "Not received"),
           lines: field("Items", clip(r.lines.map((l) => `${l.lineNo}. ${l.description}${l.itemCode ? ` [${l.itemCode}]` : ""} — received ${formatQuantity(l.receivedQty)}, rejected ${formatQuantity(l.rejectedQty)}, accepted ${formatQuantity(l.acceptedQty)} ${l.unit} (${l.department.name})`).join("; "))),
           remarks: field("Remarks", r.remarks && clip(r.remarks)),
         },

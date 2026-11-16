@@ -5,7 +5,9 @@ import { differenceInCalendarDays, format } from "date-fns";
 
 import { Prisma } from "@/lib/generated/prisma/client";
 import { VOID_GRN_STATUSES } from "@/lib/grn";
+import { VOID_PAYMENT_REQUEST_STATUSES } from "@/lib/payment-request-options";
 import { prisma } from "@/lib/prisma";
+import { PROJECT_LABEL_SELECT, projectLabel } from "@/lib/projects";
 import { type AuthContext, requirePermission } from "@/lib/session";
 
 const ZERO = new Prisma.Decimal(0);
@@ -39,11 +41,11 @@ export async function reportFilterOptions() {
   await requirePermission("reports:view");
   const [suppliers, projects] = await Promise.all([
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.project.findMany({ orderBy: { code: "asc" }, select: { id: true, code: true, name: true } }),
+    prisma.project.findMany({ orderBy: { code: "asc" }, select: PROJECT_LABEL_SELECT }),
   ]);
   return {
     suppliers: suppliers.map((s) => ({ value: s.id, label: s.name })),
-    projects: projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` })),
+    projects: projects.map((p) => ({ value: p.id, label: projectLabel(p) })),
   };
 }
 
@@ -156,14 +158,14 @@ export async function projectMaterials(range: DateRange, projectId?: string) {
       unit: true,
       itemCode: true,
       acceptedQty: true,
-      goodsReceipt: { select: { id: true, receiptDate: true, project: { select: { id: true, code: true, name: true } } } },
+      goodsReceipt: { select: { id: true, receiptDate: true, project: { select: { id: true, code: true, name: true, client: true } } } },
     },
   });
   type Item = { description: string; unit: string; itemCodes: Set<string>; accepted: Prisma.Decimal; grns: Set<string>; last: Date };
-  const projects = new Map<string, { code: string; name: string; items: Map<string, Item> }>();
+  const projects = new Map<string, { code: string; label: string; items: Map<string, Item> }>();
   for (const line of lines) {
     const { project } = line.goodsReceipt;
-    const entry = projects.get(project.id) ?? { code: project.code, name: project.name, items: new Map() };
+    const entry = projects.get(project.id) ?? { code: project.code, label: projectLabel(project), items: new Map() };
     projects.set(project.id, entry);
     const key = `${line.description.toLowerCase()}|${line.unit.toLowerCase()}`;
     const item = entry.items.get(key) ?? { description: line.description, unit: line.unit, itemCodes: new Set(), accepted: ZERO, grns: new Set(), last: line.goodsReceipt.receiptDate };
@@ -177,7 +179,7 @@ export async function projectMaterials(range: DateRange, projectId?: string) {
     .map(([id, p]) => ({
       id,
       code: p.code,
-      name: p.name,
+      label: p.label,
       items: [...p.items.values()]
         .map((i) => ({ ...i, itemCodes: [...i.itemCodes].join(", "), grnCount: i.grns.size }))
         .sort((a, b) => a.description.localeCompare(b.description)),
@@ -204,7 +206,7 @@ export async function pendingDeliveries(filters: { supplierId?: string; projectI
         name: true,
         unit: true,
         quantity: true,
-        purchaseOrder: { select: { id: true, number: true, orderDate: true, supplierName: true, project: { select: { code: true } } } },
+        purchaseOrder: { select: { id: true, number: true, orderDate: true, supplierName: true, project: { select: { code: true, name: true, client: true } } } },
       },
     }),
     prisma.goodsReceiptLine.groupBy({
@@ -245,7 +247,7 @@ export async function paymentsSummary(range: DateRange) {
   await requirePermission("reports:view");
   const requests = await prisma.paymentRequest.findMany({
     where: { requestDate: inRange(range) },
-    select: { status: true, priority: true, currency: true, amount: true, inFavorOf: true, project: { select: { code: true, name: true } } },
+    select: { status: true, priority: true, currency: true, amount: true, inFavorOf: true, project: { select: { code: true, name: true, client: true } } },
   });
   const byStatus: Totals = new Map();
   const byPriority: Totals = new Map();
@@ -254,7 +256,7 @@ export async function paymentsSummary(range: DateRange) {
   for (const r of requests) {
     addTo(byStatus, r.status, r.currency, r.amount);
     addTo(byPriority, r.priority, r.currency, r.amount);
-    addTo(byProject, `${r.project.code} – ${r.project.name}`, r.currency, r.amount);
+    addTo(byProject, projectLabel(r.project), r.currency, r.amount);
     addTo(byPayee, r.inFavorOf, r.currency, r.amount);
   }
   return {
@@ -273,13 +275,13 @@ export async function spendSummary(range: DateRange) {
   await requirePermission("reports:view");
   const orders = await prisma.purchaseOrder.findMany({
     where: { status: { in: [...COMMITTED_PO] }, orderDate: inRange(range) },
-    select: { currency: true, total: true, project: { select: { code: true, name: true } }, category: { select: { name: true } } },
+    select: { currency: true, total: true, project: { select: { code: true, name: true, client: true } }, category: { select: { name: true } } },
   });
   const byProject: Totals = new Map();
   const byCategory: Totals = new Map();
   const overall: Totals = new Map();
   for (const o of orders) {
-    addTo(byProject, `${o.project.code} – ${o.project.name}`, o.currency, o.total);
+    addTo(byProject, projectLabel(o.project), o.currency, o.total);
     addTo(byCategory, o.category.name, o.currency, o.total);
     addTo(overall, "All", o.currency, o.total);
   }
@@ -303,7 +305,7 @@ export async function mrsAwaitingPo(settings: AuthContext["settings"]) {
       id: true,
       number: true,
       requestDate: true,
-      project: { select: { code: true, name: true } },
+      project: { select: { code: true, name: true, client: true } },
       department: { select: { name: true } },
       category: { select: { name: true } },
       _count: { select: { lines: true } },
@@ -311,4 +313,91 @@ export async function mrsAwaitingPo(settings: AuthContext["settings"]) {
   });
   const today = asDate(format(new TZDate(new Date(), settings.timeZone), "yyyy-MM-dd"));
   return requests.map((r) => ({ ...r, ageDays: differenceInCalendarDays(today, r.requestDate) }));
+}
+
+// --- PO tracker -----------------------------------------------------------------
+
+export const PO_TRACKER_COMPLETION = { complete: "Complete", open: "Not complete" } as const;
+export type PoTrackerCompletion = keyof typeof PO_TRACKER_COMPLETION;
+
+export function pickCompletion(value: string | string[] | undefined): PoTrackerCompletion | undefined {
+  return value === "complete" || value === "open" ? value : undefined;
+}
+
+/**
+ * One row per payment request (rejected and cancelled ones left out), with its
+ * PO, MR, GRNs and Finance dates. A PO is Complete once the invoices submitted
+ * to Finance cover its total; a request without a PO once its own invoice is.
+ */
+export async function poTracker(
+  range: DateRange,
+  filters: { projectId?: string; supplierId?: string; completion?: PoTrackerCompletion },
+) {
+  await requirePermission("reports:view");
+  const { projectId, supplierId, completion } = filters;
+  const live = { notIn: [...VOID_PAYMENT_REQUEST_STATUSES] };
+  const requests = await prisma.paymentRequest.findMany({
+    where: {
+      status: live,
+      requestDate: inRange(range),
+      ...(projectId && { projectId }),
+      ...(supplierId && { OR: [{ supplierId }, { purchaseOrder: { supplierId } }] }),
+    },
+    orderBy: [{ requestDate: "asc" }, { number: "asc" }],
+    select: {
+      id: true,
+      number: true,
+      requestDate: true,
+      amount: true,
+      currency: true,
+      inFavorOf: true,
+      invoiceNo: true,
+      claimNo: true,
+      financeSubmittedOn: true,
+      invoiceSubmittedOn: true,
+      trackerRemarks: true,
+      supplier: { select: { name: true } },
+      project: { select: { code: true, name: true, client: true } },
+      purchaseOrder: {
+        select: {
+          id: true,
+          number: true,
+          total: true,
+          supplierName: true,
+          materialRequest: { select: { id: true, number: true } },
+          goodsReceipts: {
+            where: { status: { notIn: [...VOID_GRN_STATUSES] } },
+            orderBy: { number: "asc" },
+            select: { id: true, number: true, deliveryNote: true },
+          },
+          paymentRequests: { where: { status: live }, select: { amount: true, invoiceSubmittedOn: true } },
+        },
+      },
+    },
+  });
+
+  const rows = requests
+    .map((request) => {
+      const po = request.purchaseOrder;
+      const invoicedToFinance = po
+        ? po.paymentRequests.filter((p) => p.invoiceSubmittedOn).reduce((sum, p) => sum.plus(p.amount), ZERO)
+        : ZERO;
+      const complete = po ? invoicedToFinance.gte(po.total) : request.invoiceSubmittedOn !== null;
+      return {
+        ...request,
+        supplierName: po?.supplierName ?? request.supplier?.name ?? request.inFavorOf,
+        grns: po?.goodsReceipts ?? [],
+        deliveryNote: (po?.goodsReceipts ?? []).some((grn) => grn.deliveryNote),
+        complete,
+      };
+    })
+    .filter((row) => !completion || row.complete === (completion === "complete"));
+
+  const totals = new Map<string, Prisma.Decimal>();
+  for (const row of rows) totals.set(row.currency, (totals.get(row.currency) ?? ZERO).plus(row.amount));
+  return {
+    rows,
+    totals: [...totals.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    completeCount: rows.filter((row) => row.complete).length,
+  };
 }

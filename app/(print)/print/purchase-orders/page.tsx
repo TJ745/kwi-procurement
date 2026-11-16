@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { describeFilters } from "@/lib/print";
 import { requirePermission } from "@/lib/session";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Print · Purchase Orders" };
 
@@ -33,7 +34,7 @@ export default async function Page({ searchParams }: PageProps<"/print/purchase-
           { header: "Date", cell: (row) => formatDate.calendarDate(row.orderDate) },
           { header: "Supplier", cell: (row) => row.supplierName },
           { header: "Subject", cell: (row) => row.category.name },
-          { header: "Project", cell: (row) => row.project.code },
+          { header: "Project", cell: (row) => projectLabel(row.project) },
           { header: "MR No", cell: (row) => row.materialRequest?.number ?? "" },
           { header: "Total", cell: (row) => formatMoney(row.total, row.currency), align: "right" },
           { header: "Status", cell: (row) => PURCHASE_ORDER_STATUS_LABELS[row.status] },

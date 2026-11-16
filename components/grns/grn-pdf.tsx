@@ -41,6 +41,7 @@ export type GrnPdfData = {
   projectName: string;
   projectCode: string;
   invoiceNo: string | null;
+  deliveryNote: boolean;
   deliveredBy: string;
   lines: {
     lineNo: number;
@@ -265,6 +266,7 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
             <KV label="MR Ref" value={data.mrRef} />
             <KV label="PO Ref" value={data.poRef} />
             <KV label="Invoice No" value={data.invoiceNo} />
+            <KV label="Delivery note" value={data.deliveryNote ? "Received" : "Not received"} />
           </View>
           <View style={[s.panel, { flex: 1.2 }]}>
             <Text style={s.panelTitle}>Order</Text>

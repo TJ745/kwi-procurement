@@ -17,7 +17,11 @@ import {
 } from "@/lib/payment-request-options";
 import { prisma } from "@/lib/prisma";
 import { recordIdSchema } from "@/lib/validation/master-data";
-import { type PaymentRequestInput, paymentRequestSchema } from "@/lib/validation/payment-request";
+import {
+  type PaymentRequestInput,
+  paymentRequestFinanceSchema,
+  paymentRequestSchema,
+} from "@/lib/validation/payment-request";
 
 // Interactive transactions queue on row locks; allow for that.
 const TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 20_000 };
@@ -61,6 +65,7 @@ function toData(input: PaymentRequestInput) {
     amount: input.amount,
     invoiceNo: orNull(input.invoiceNo),
     quotationNo: orNull(input.quotationNo),
+    claimNo: orNull(input.claimNo),
     note: orNull(input.note),
   };
 }
@@ -241,5 +246,31 @@ export async function deletePaymentRequestFromDetail(id: string) {
     success: "Payment request deleted.",
     refreshPage: false,
     run: ({ id }) => deleteUnlessLocked(id),
+  });
+}
+
+const toDate = (value: string) => (value ? new Date(`${value}T00:00:00.000Z`) : null);
+
+/**
+ * When the request and its invoice were submitted to Finance (PO Tracker).
+ * Workflow tracking like the status, so it works on approved and paid requests too.
+ */
+export async function setPaymentRequestFinance(id: string, input: unknown) {
+  return runMutation({
+    requirement: "payment_requests:status",
+    audit: { entity: "payment_request", action: "update" },
+    schema: paymentRequestFinanceSchema.extend({ id: recordIdSchema }),
+    input: { ...(input as object), id },
+    success: "Finance dates saved.",
+    run: ({ id, financeSubmittedOn, invoiceSubmittedOn, trackerRemarks }) =>
+      prisma.paymentRequest.update({
+        where: { id },
+        data: {
+          financeSubmittedOn: toDate(financeSubmittedOn),
+          invoiceSubmittedOn: toDate(invoiceSubmittedOn),
+          trackerRemarks: orNull(trackerRemarks),
+        },
+        select: { id: true },
+      }),
   });
 }

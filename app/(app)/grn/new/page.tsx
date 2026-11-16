@@ -12,6 +12,7 @@ import { createGrn } from "@/lib/actions/grns";
 import { getGrnOptions, getPurchaseOrderForGrn } from "@/lib/data/grns";
 import { previewDocumentNumber } from "@/lib/numbering";
 import { requirePermission } from "@/lib/session";
+import { projectName } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "New GRN" };
 
@@ -76,7 +77,7 @@ export default async function Page({ searchParams }: PageProps<"/grn/new">) {
           nextNumberPreview: nextNumber ?? undefined,
           poNumber: source.number,
           mrNumber: source.materialRequest?.number ?? null,
-          projectName: source.project.name,
+          projectName: projectName(source.project),
           projectCode: source.project.code,
         }}
         defaultValues={{
@@ -85,6 +86,7 @@ export default async function Page({ searchParams }: PageProps<"/grn/new">) {
           supplierName: source.supplierName,
           supplierAddress: source.supplierAddress ?? "",
           invoiceNo: "",
+          deliveryNote: false,
           deliveredBy: "LOCAL_DELIVERY",
           remarks: "",
           lines: source.lines.map((line) => ({

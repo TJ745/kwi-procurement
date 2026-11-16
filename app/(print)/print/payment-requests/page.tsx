@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { PAYMENT_REQUEST_STATUS_LABELS, priorityLabel } from "@/lib/payment-request-options";
 import { describeFilters } from "@/lib/print";
 import { requirePermission } from "@/lib/session";
+import { projectLabel } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Print · Payment Requests" };
 
@@ -32,7 +33,7 @@ export default async function Page({ searchParams }: PageProps<"/print/payment-r
           { header: "PR No", cell: (row) => row.number },
           { header: "Date", cell: (row) => formatDate.calendarDate(row.requestDate) },
           { header: "In favor of", cell: (row) => row.inFavorOf },
-          { header: "Project", cell: (row) => row.project.code },
+          { header: "Project", cell: (row) => projectLabel(row.project) },
           { header: "PO Ref", cell: (row) => row.purchaseOrder?.number ?? "" },
           { header: "Priority", cell: (row) => priorityLabel(row.priority) },
           { header: "Amount", cell: (row) => formatMoney(row.amount, row.currency), align: "right" },

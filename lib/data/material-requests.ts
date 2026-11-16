@@ -5,6 +5,7 @@ import { forbidden } from "next/navigation";
 import type { MaterialRequestStatus, Prisma } from "@/lib/generated/prisma/client";
 import { type ListParams, paginate } from "@/lib/data/list-params";
 import { prisma } from "@/lib/prisma";
+import { PROJECT_LABEL_SELECT, projectLabel } from "@/lib/projects";
 import { requirePermission, requireUser } from "@/lib/session";
 import { MATERIAL_REQUEST_STATUSES } from "@/lib/validation/material-request";
 
@@ -47,7 +48,7 @@ export async function listMaterialRequests(
           number: true,
           requestDate: true,
           status: true,
-          project: { select: { code: true, name: true } },
+          project: { select: { code: true, name: true, client: true } },
           department: { select: { name: true } },
           category: { select: { name: true } },
           _count: { select: { lines: true } },
@@ -62,7 +63,7 @@ export async function getMaterialRequest(id: string) {
   return prisma.materialRequest.findUnique({
     where: { id },
     include: {
-      project: { select: { id: true, code: true, name: true } },
+      project: { select: { id: true, code: true, name: true, client: true } },
       department: { select: { id: true, name: true } },
       category: { select: { id: true, name: true } },
       supplier: { select: { id: true, name: true } },
@@ -83,13 +84,13 @@ export async function getMaterialRequestOptions() {
   if (!can("material_requests:create") && !can("material_requests:edit")) forbidden();
 
   const [projects, departments, categories, suppliers] = await Promise.all([
-    prisma.project.findMany({ orderBy: { code: "asc" }, select: { id: true, code: true, name: true } }),
+    prisma.project.findMany({ orderBy: { code: "asc" }, select: PROJECT_LABEL_SELECT }),
     prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   return {
-    projects: projects.map((p) => ({ value: p.id, label: `${p.code} – ${p.name}` })),
+    projects: projects.map((p) => ({ value: p.id, label: projectLabel(p) })),
     departments: departments.map((d) => ({ value: d.id, label: d.name })),
     categories: categories.map((c) => ({ value: c.id, label: c.name })),
     suppliers: suppliers.map((s) => ({ value: s.id, label: s.name })),

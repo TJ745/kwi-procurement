@@ -12,10 +12,12 @@ type ReportFiltersProps = {
   range?: { from: string; to: string };
   supplier?: { options: Option[]; value?: string; required?: boolean };
   project?: { options: Option[]; value?: string };
+  /** Extra dropdowns, e.g. PO status on the PO tracker. */
+  choices?: { name: string; label: string; allLabel: string; options: Option[]; value?: string }[];
 };
 
 /** Plain GET form: filters live in the URL, so reports can be bookmarked and printed. */
-export function ReportFilters({ range, supplier, project }: ReportFiltersProps) {
+export function ReportFilters({ range, supplier, project, choices = [] }: ReportFiltersProps) {
   return (
     <Card size="sm">
       <CardContent>
@@ -46,6 +48,19 @@ export function ReportFilters({ range, supplier, project }: ReportFiltersProps) 
               </NativeSelect>
             </label>
           )}
+          {choices.map((choice) => (
+            <label key={choice.name} className="flex min-w-44 flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-muted-foreground">{choice.label}</span>
+              <NativeSelect name={choice.name} defaultValue={choice.value ?? ""} className="w-full">
+                <NativeSelectOption value="">{choice.allLabel}</NativeSelectOption>
+                {choice.options.map((option) => (
+                  <NativeSelectOption key={option.value} value={option.value}>
+                    {option.label}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </label>
+          ))}
           {range && (
             <>
               <label className="flex flex-col gap-1 text-sm">

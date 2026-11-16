@@ -43,6 +43,7 @@ import {
   PURCHASE_ORDER_STATUS_LABELS,
   REVISABLE_PURCHASE_ORDER_STATUSES,
 } from "@/lib/validation/purchase-order";
+import { projectName } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "Purchase order" };
 
@@ -174,7 +175,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
                 }
               />
               <Detail label="Ordered by (Department)" value={order.department.name} />
-              <Detail label="Project name" value={order.project.name} />
+              <Detail label="Project name" value={projectName(order.project)} />
               <Detail label="Project code" value={order.project.code} />
               <Detail label="Subject" value={order.category.name} className="sm:col-span-2" />
               <Detail label="Deliver to" value={order.deliverTo} className="sm:col-span-2" />

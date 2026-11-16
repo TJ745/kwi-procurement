@@ -4,7 +4,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 
 /** Everything the PO document (PDF) shows, for the live order or a saved revision. */
 export const PO_DOCUMENT_INCLUDE = {
-  project: { select: { code: true, name: true } },
+  project: { select: { code: true, name: true, client: true } },
   department: { select: { name: true } },
   category: { select: { name: true } },
   materialRequest: { select: { number: true } },

@@ -1,6 +1,11 @@
 /** Reports listed on /reports (each has a page and a print view). */
 export const REPORTS = [
   {
+    slug: "po-tracker",
+    title: "PO tracker",
+    description: "Every payment request with its MR, PO, GRNs, invoice and Finance submission, and whether the PO is complete.",
+  },
+  {
     slug: "supplier-statement",
     title: "Supplier statement of account",
     description: "Purchase orders owed and payments made for one supplier, with a running balance.",

@@ -19,6 +19,7 @@ import { getGrn } from "@/lib/data/grns";
 import { formatQuantity } from "@/lib/format";
 import { GRN_STATUSES, GRN_STATUS_LABELS, LOCKED_GRN_STATUSES, deliveryMethodLabel } from "@/lib/grn";
 import { requirePermission } from "@/lib/session";
+import { projectName } from "@/lib/projects";
 
 export const metadata: Metadata = { title: "GRN" };
 
@@ -129,9 +130,10 @@ export default async function Page({ params }: PageProps<"/grn/[id]">) {
                 }
               />
               <Detail label="Ordered by" value={grn.department.name} />
-              <Detail label="Project name" value={grn.project.name} />
+              <Detail label="Project name" value={projectName(grn.project)} />
               <Detail label="Project code" value={grn.project.code} />
               <Detail label="Invoice No" value={grn.invoiceNo} />
+              <Detail label="Delivery note" value={grn.deliveryNote ? "Received" : "Not received"} />
               <Detail label="Delivered by" value={deliveryMethodLabel(grn.deliveredBy)} />
             </dl>
           </CardContent>

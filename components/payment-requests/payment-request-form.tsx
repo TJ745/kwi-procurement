@@ -203,6 +203,7 @@ export function PaymentRequestForm({
               </ReadOnly>
             </div>
             <TextField control={control} name="quotationNo" label="Quotation No" autoComplete="off" />
+            <TextField control={control} name="claimNo" label="Claim No" autoComplete="off" />
             <div className="md:col-span-3">
               <TextField control={control} name="note" label="Note" multiline />
             </div>

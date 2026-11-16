@@ -8,6 +8,7 @@ import { createDateFormatter, formatQuantity } from "@/lib/format";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { projectName } from "@/lib/projects";
 
 /** Printable A4 PDF of a material request, for users who can view it. */
 export async function GET(_request: Request, { params }: RouteContext<"/material-requests/[id]/pdf">) {
@@ -22,7 +23,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
     prisma.materialRequest.findUnique({
       where: { id },
       include: {
-        project: { select: { code: true, name: true } },
+        project: { select: { code: true, name: true, client: true } },
         department: { select: { name: true } },
         category: { select: { name: true } },
         supplier: { select: { name: true } },
@@ -51,7 +52,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
     number: request.number,
     requestDate: formatDate.calendarDate(request.requestDate),
     status: request.status,
-    projectName: request.project.name,
+    projectName: projectName(request.project),
     projectCode: request.project.code,
     department: request.department.name,
     category: request.category.name,

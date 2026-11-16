@@ -6,6 +6,7 @@ import { GRN_STATUS_LABELS } from "@/lib/grn";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { projectName } from "@/lib/projects";
 
 /** Printable A4 (landscape) PDF of a GRN, for users who can view it. */
 export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]/pdf">) {
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
     prisma.goodsReceipt.findUnique({
       where: { id },
       include: {
-        project: { select: { code: true, name: true } },
+        project: { select: { code: true, name: true, client: true } },
         department: { select: { name: true } },
         purchaseOrder: { select: { number: true, materialRequest: { select: { number: true } } } },
         createdBy: { select: { name: true } },
@@ -54,9 +55,10 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
     mrRef: grn.purchaseOrder.materialRequest?.number ?? null,
     poRef: grn.purchaseOrder.number,
     orderedBy: grn.department.name,
-    projectName: grn.project.name,
+    projectName: projectName(grn.project),
     projectCode: grn.project.code,
     invoiceNo: grn.invoiceNo,
+    deliveryNote: grn.deliveryNote,
     deliveredBy: grn.deliveredBy,
     lines: grn.lines.map((line) => ({
       lineNo: line.lineNo,

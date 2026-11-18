@@ -73,6 +73,7 @@ export async function GET(request: Request, { params }: RouteContext<"/purchase-
       telephone: order.supplierTelephone,
       vat: order.supplierVat,
       quotationRef: order.quotationRef,
+      invoiceNo: order.invoiceNo,
     },
     order: {
       orderDate,

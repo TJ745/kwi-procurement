@@ -43,6 +43,7 @@ export type PurchaseOrderPdfData = {
     telephone: string | null;
     vat: string | null;
     quotationRef: string | null;
+    invoiceNo: string | null;
   };
   order: {
     orderDate: string;
@@ -182,6 +183,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 6,
   },
   grandRow: {
+    alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: BORDER,
     backgroundColor: "#f5f5f5",
@@ -225,12 +227,51 @@ const s = StyleSheet.create({
   },
 });
 
-function KV({ label, value }: { label: string; value: string | null }) {
+function KV({
+  label,
+  value,
+  strong,
+  large,
+}: {
+  label: string;
+  value: string | null;
+  /** Prints the value (not the label) in bold. */
+  strong?: boolean;
+  /** Prints the value a little larger. */
+  large?: boolean;
+}) {
   return (
     <View style={s.kv}>
       <Text style={s.kvLabel}>{label}</Text>
-      <Text style={s.kvValue}>{value || "—"}</Text>
+      <Text style={[s.kvValue, strong ? s.bold : {}, large ? { fontSize: 10 } : {}]}>
+        {value || "—"}
+      </Text>
     </View>
+  );
+}
+
+// Matches "Payment terms: …", also when numbered ("1. Payment Terms: …").
+const PAYMENT_TERMS_LINE = /^(\s*(?:\d+[.)]\s*)?payment\s+terms?\s*:)(.*)$/i;
+
+/** Terms text, with the value of a "Payment terms:" line in bold. */
+function TermsText({ terms }: { terms: string }) {
+  const lines = terms.split(/\r?\n/);
+  return (
+    <Text style={s.termsBody}>
+      {lines.map((line, index) => {
+        const match = PAYMENT_TERMS_LINE.exec(line);
+        const end = index < lines.length - 1 ? "\n" : "";
+        return match ? (
+          <Text key={index}>
+            {match[1]}
+            <Text style={s.bold}>{match[2]}</Text>
+            {end}
+          </Text>
+        ) : (
+          <Text key={index}>{line + end}</Text>
+        );
+      })}
+    </Text>
   );
 }
 
@@ -300,24 +341,30 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
         <View style={s.panels}>
           <View style={s.panel}>
             <Text style={s.panelTitle}>To</Text>
-            <KV label="Company" value={supplier.name} />
+            <KV label="Company" value={supplier.name} strong large />
             <KV label="Location" value={supplier.location} />
             <KV label="Contact person" value={supplier.contactName} />
             <KV label="Contact Number" value={supplier.contactNumber} />
             <KV label="Email" value={supplier.email} />
             <KV label="Tel" value={supplier.telephone} />
             <KV label="VAT number" value={supplier.vat} />
-            <KV label="Quotation ref" value={supplier.quotationRef} />
+            {/* One row, so the panel keeps its height. */}
+            <View style={s.kv}>
+              <Text style={s.kvLabel}>Quotation ref</Text>
+              <Text style={[s.kvValue, s.bold]}>{supplier.quotationRef || "—"}</Text>
+              <Text style={[s.muted, { width: 52 }]}>Invoice No</Text>
+              <Text style={[s.kvValue, s.bold]}>{supplier.invoiceNo || "—"}</Text>
+            </View>
           </View>
           <View style={s.panel}>
             <Text style={s.panelTitle}>Purchase order data</Text>
-            <KV label="Order date" value={order.orderDate} />
-            <KV label="MR number" value={order.mrNumber} />
-            <KV label="Ordered by" value={order.orderedBy} />
-            <KV label="Project name" value={order.projectName} />
-            <KV label="Project code" value={order.projectCode} />
-            <KV label="Subject" value={order.subject} />
-            <KV label="Deliver to" value={order.deliverTo} />
+            <KV label="Order date" value={order.orderDate} strong />
+            <KV label="MR number" value={order.mrNumber} strong />
+            <KV label="Ordered by" value={order.orderedBy} strong />
+            <KV label="Project name" value={order.projectName} strong />
+            <KV label="Project code" value={order.projectCode} strong />
+            <KV label="Subject" value={order.subject} strong />
+            <KV label="Deliver to" value={order.deliverTo} strong />
           </View>
         </View>
 
@@ -344,7 +391,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
               <Text style={[s.td, s.cUnit]}>{line.unit}</Text>
               <Text style={[s.td, s.cQty]}>{line.quantity}</Text>
               <Text style={[s.td, s.cPrice]}>{line.unitPrice}</Text>
-              <Text style={[s.td, s.cTotal]}>{line.total}</Text>
+              <Text style={[s.td, s.cTotal, s.bold]}>{line.total}</Text>
             </View>
           ))}
         </View>
@@ -353,13 +400,13 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
           {data.terms && (
             <View style={s.terms}>
               <Text style={s.panelTitle}>Terms & Conditions</Text>
-              <Text style={s.termsBody}>{data.terms}</Text>
+              <TermsText terms={data.terms} />
             </View>
           )}
           <View style={s.totals} wrap={false}>
             <View style={s.totalRow}>
               <Text style={s.muted}>Subtotal</Text>
-              <Text>{totals.subtotal}</Text>
+              <Text style={s.bold}>{totals.subtotal}</Text>
             </View>
             <View style={s.totalRow}>
               <Text style={s.muted}>Discount</Text>
@@ -367,7 +414,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
             </View>
             <View style={s.totalRow}>
               <Text style={s.muted}>Total After Discount</Text>
-              <Text>{totals.totalAfterDiscount}</Text>
+              <Text style={s.bold}>{totals.totalAfterDiscount}</Text>
             </View>
             <View style={s.totalRow}>
               <Text style={s.muted}>VAT ({totals.vatRate}%)</Text>
@@ -375,7 +422,7 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
             </View>
             <View style={[s.totalRow, s.grandRow]}>
               <Text style={s.bold}>Grand total ({data.currency})</Text>
-              <Text style={s.bold}>{totals.total}</Text>
+              <Text style={[s.bold, { fontSize: 11 }]}>{totals.total}</Text>
             </View>
           </View>
         </View>

@@ -186,11 +186,25 @@ function colStyle(width: number, last: boolean) {
   return [width ? { width } : { flex: 1 }, last ? {} : s.cell];
 }
 
-function KV({ label, value }: { label: string; value: string | null }) {
+function KV({
+  label,
+  value,
+  strong,
+  large,
+}: {
+  label: string;
+  value: string | null;
+  /** Prints the value (not the label) in bold. */
+  strong?: boolean;
+  /** Prints the value a little larger. */
+  large?: boolean;
+}) {
   return (
     <View style={s.kv}>
       <Text style={s.kvLabel}>{label}</Text>
-      <Text style={s.kvValue}>{value || "—"}</Text>
+      <Text style={[s.kvValue, strong ? s.bold : {}, large ? { fontSize: 9.5 } : {}]}>
+        {value || "—"}
+      </Text>
     </View>
   );
 }
@@ -262,21 +276,21 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
         <View style={s.panels}>
           <View style={[s.panel, { flex: 1 }]}>
             <Text style={s.panelTitle}>From</Text>
-            <KV label="Supplier" value={data.supplierName} />
+            <KV label="Supplier" value={data.supplierName} strong large />
             <KV label="Address" value={data.supplierAddress} />
           </View>
           <View style={[s.panel, { flex: 1 }]}>
             <Text style={s.panelTitle}>References</Text>
-            <KV label="MR Ref" value={data.mrRef} />
-            <KV label="PO Ref" value={data.poRef} />
-            <KV label="Invoice No" value={data.invoiceNo} />
-            <KV label="Delivery note" value={data.deliveryNote ? "Received" : "Not received"} />
+            <KV label="MR Ref" value={data.mrRef} strong />
+            <KV label="PO Ref" value={data.poRef} strong />
+            <KV label="Invoice No" value={data.invoiceNo} strong />
+            <KV label="Delivery note" value={data.deliveryNote ? "Received" : "Not received"} strong />
           </View>
           <View style={[s.panel, { flex: 1.2 }]}>
             <Text style={s.panelTitle}>Order</Text>
-            <KV label="Ordered by" value={data.orderedBy} />
-            <KV label="Project name" value={data.projectName} />
-            <KV label="Project code" value={data.projectCode} />
+            <KV label="Ordered by" value={data.orderedBy} strong />
+            <KV label="Project name" value={data.projectName} strong />
+            <KV label="Project code" value={data.projectCode} strong />
             <View style={s.kv}>
               <Text style={s.kvLabel}>Delivered by</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>

@@ -8,6 +8,7 @@ import {
   PurchaseOrderDefaultsForm,
   RegionalSettingsForm,
   SecuritySettingsForm,
+  SignatoriesForm,
 } from "@/components/admin/settings-forms";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -25,6 +26,7 @@ import {
   updatePurchaseOrderDefaults,
   updateRegionalSettings,
   updateSecuritySettings,
+  updateSignatories,
   uploadCompanyLogo,
   uploadPrintFooter,
 } from "@/lib/actions/settings";
@@ -33,6 +35,7 @@ import { getEditableSettings } from "@/lib/data/admin";
 import { DOCUMENT_TYPES } from "@/lib/document-numbering";
 import { getNavItem } from "@/lib/navigation";
 import { requireSuperAdmin } from "@/lib/session";
+import { readSignatories } from "@/lib/signatories";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -156,6 +159,13 @@ export default async function Page() {
             purchaseOrderTerms: s.purchaseOrderTerms ?? "",
           }}
         />
+      </Section>
+
+      <Section
+        title="Signatures"
+        description="The signature boxes printed at the bottom of MR, PO, PR and GRN PDFs: a title, the person's position and their name. Update them here when someone changes or a position changes. If the first box has no name, the person who created the document is printed."
+      >
+        <SignatoriesForm action={updateSignatories} defaultValues={readSignatories(s.signatories)} />
       </Section>
 
       <Section

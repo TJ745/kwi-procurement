@@ -16,6 +16,7 @@ import {
 } from "@/components/print/pdf-footer-image";
 
 import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
+import type { Signatory } from "@/lib/signatories";
 import {
   MATERIAL_REQUEST_STATUS_LABELS,
   type MaterialRequestStatusValue,
@@ -44,6 +45,8 @@ export type MaterialRequestPdfData = {
   supplier: string | null;
   createdBy: string;
   generatedAt: string;
+  /** Signature boxes from Settings › Signatures. */
+  signatories: Signatory[];
   lines: {
     lineNo: number;
     name: string;
@@ -178,11 +181,12 @@ function InfoCell({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function SignatureBox({ title, name }: { title: string; name: string }) {
+function SignatureBox({ signatory }: { signatory: Signatory }) {
   return (
     <View style={styles.signBox} wrap={false}>
-      <Text style={styles.signTitle}>{title}</Text>
-      <Text style={styles.signName}>{name}</Text>
+      <Text style={styles.signTitle}>{signatory.title || " "}</Text>
+      {signatory.position && <Text style={styles.signName}>{signatory.position}</Text>}
+      {signatory.name && <Text style={[styles.signName, { color: "#171717" }]}>{signatory.name}</Text>}
       <View style={styles.signLine}>
         <Text>Signature</Text>
         <Text>Date</Text>
@@ -270,9 +274,9 @@ export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
         </View>
 
         <View style={styles.signatures} wrap={false}>
-          <SignatureBox title="Reviewed By" name={data.createdBy} />
-          <SignatureBox title="Authorized By" name={data.department} />
-          <SignatureBox title="Approved By" name="General Manager" />
+          {data.signatories.map((signatory, index) => (
+            <SignatureBox key={index} signatory={signatory} />
+          ))}
         </View>
 
         <PdfFooterImage layout={footer} />

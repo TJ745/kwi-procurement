@@ -49,6 +49,7 @@ const VERBS: Record<string, string> = {
   delete: "Deleted",
   status: "Changed status of",
   revise: "Revised",
+  undo_revision: "Undid the last revision of",
   password_reset: "Reset the password of",
   activate: "Reactivated",
   deactivate: "Deactivated",

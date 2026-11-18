@@ -12,6 +12,7 @@ import { PAYMENT_REQUEST_STATUS_LABELS, VOID_PAYMENT_REQUEST_STATUSES } from "@/
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { documentSignatories } from "@/lib/signatories";
 import { projectLabel } from "@/lib/projects";
 
 const isVoid = (status: PaymentRequestStatus) => (VOID_PAYMENT_REQUEST_STATUSES as readonly string[]).includes(status);
@@ -134,6 +135,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/payment-
     history: paymentHistory(request.id, request.purchaseOrder, formatDate),
     preparedBy: request.createdBy.name,
     generatedAt: formatDate.dateTime(new Date()),
+    signatories: documentSignatories(settings.signatories, "paymentRequest", request.createdBy.name),
   };
 
   const pdf = await renderToBuffer(<PaymentRequestPdf data={data} />);

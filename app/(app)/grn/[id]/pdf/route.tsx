@@ -6,6 +6,7 @@ import { GRN_STATUS_LABELS } from "@/lib/grn";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { documentSignatories } from "@/lib/signatories";
 import { projectName } from "@/lib/projects";
 
 /** Printable A4 (landscape) PDF of a GRN, for users who can view it. */
@@ -76,6 +77,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/grn/[id]
     remarks: grn.remarks,
     preparedBy: grn.createdBy.name,
     generatedAt: formatDate.dateTime(new Date()),
+    signatories: documentSignatories(settings.signatories, "goodsReceipt", grn.createdBy.name),
   };
 
   const pdf = await renderToBuffer(<GrnPdf data={data} />);

@@ -8,7 +8,7 @@ import { computeTotals, formatMoney } from "@/lib/money";
 import { lockPurchaseOrder, requestedAgainst } from "@/lib/payment-balance";
 import { allocateDocumentNumber } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
-import { PO_DOCUMENT_INCLUDE, toSnapshot } from "@/lib/purchase-order-revisions";
+import { fromSnapshot, PO_DOCUMENT_INCLUDE, toSnapshot } from "@/lib/purchase-order-revisions";
 import { recordIdSchema } from "@/lib/validation/master-data";
 import {
   LOCKED_PURCHASE_ORDER_STATUSES,
@@ -72,6 +72,7 @@ function toData(input: PurchaseOrderInput) {
     supplierTelephone: orNull(input.supplierTelephone),
     supplierVat: orNull(input.supplierVat),
     quotationRef: orNull(input.quotationRef),
+    invoiceNo: orNull(input.invoiceNo),
     currency: input.currency,
     subtotal: totals.subtotal,
     discount: totals.discount,
@@ -247,6 +248,114 @@ export async function updatePurchaseOrder(id: string, input: unknown) {
         });
       }, TRANSACTION_OPTIONS);
     },
+  });
+}
+
+/** Order fields a revision can change, restored by undoing it (status and the MR link stay). */
+const REVISED_FIELDS = [
+  "number",
+  "revision",
+  "orderDate",
+  "projectId",
+  "departmentId",
+  "categoryId",
+  "deliverTo",
+  "supplierId",
+  "supplierName",
+  "supplierAddress",
+  "supplierContactName",
+  "supplierContactNumber",
+  "supplierEmail",
+  "supplierTelephone",
+  "supplierVat",
+  "quotationRef",
+  "invoiceNo",
+  "currency",
+  "subtotal",
+  "discount",
+  "vatRate",
+  "vatAmount",
+  "total",
+  "terms",
+] as const;
+
+/**
+ * Undoes a revision made by mistake: the order goes back to the previous
+ * version (number, details, items and totals) and that saved version is removed.
+ */
+export async function undoPurchaseOrderRevision(id: string) {
+  return runMutation({
+    requirement: "purchase_orders:edit",
+    audit: { entity: "purchase_order", action: "undo_revision" },
+    schema: z.object({ id: recordIdSchema }),
+    input: { id },
+    success: "Revision undone. The previous version is back.",
+    run: ({ id }) =>
+      prisma.$transaction(async (tx) => {
+        await lockPurchaseOrder(tx, id);
+        const current = await tx.purchaseOrder.findUniqueOrThrow({ where: { id }, include: PO_DOCUMENT_INCLUDE });
+        if (current.revision === 0) throw new ActionError("This purchase order has no revision to undo.");
+        const saved = await tx.purchaseOrderRevision.findUnique({
+          where: { purchaseOrderId_revision: { purchaseOrderId: id, revision: current.revision - 1 } },
+        });
+        if (!saved) throw new ActionError("The previous version could not be found.");
+        const previous = fromSnapshot(saved.snapshot);
+
+        // Payments already requested must still fit the restored order.
+        const requested = await requestedAgainst(tx, id);
+        if (requested.greaterThan(0)) {
+          if (previous.currency !== current.currency) {
+            throw new ActionError("Payment requests exist in the current currency, so this revision can't be undone.");
+          }
+          if (requested.greaterThan(previous.total)) {
+            throw new ActionError(
+              `${formatMoney(requested.toString(), current.currency)} has been requested for payment, more than the previous version's total.`,
+            );
+          }
+        }
+
+        // Older saved versions may predate some fields; only restore what was saved.
+        const data: Record<string, unknown> = {};
+        for (const field of REVISED_FIELDS) {
+          if (field in previous) data[field] = previous[field];
+        }
+
+        const sameLines =
+          current.lines.length === previous.lines.length &&
+          current.lines.every(
+            (line, index) =>
+              line.name === previous.lines[index].name &&
+              line.unit === previous.lines[index].unit &&
+              line.quantity.equals(previous.lines[index].quantity) &&
+              line.unitPrice.equals(previous.lines[index].unitPrice),
+          );
+        if (!sameLines) {
+          // Received goods reference the current items, which then can't be swapped back.
+          if (await tx.goodsReceipt.count({ where: { purchaseOrderId: id } })) {
+            throw new ActionError(
+              "Goods have been received against the revised items, so this revision can't be undone.",
+            );
+          }
+          await tx.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } });
+          await tx.purchaseOrderLine.createMany({
+            data: previous.lines.map((line) => ({
+              purchaseOrderId: id,
+              lineNo: line.lineNo,
+              name: line.name,
+              unit: line.unit,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              total: line.total,
+            })),
+          });
+        }
+        await tx.purchaseOrderRevision.delete({ where: { id: saved.id } });
+        return tx.purchaseOrder.update({
+          where: { id },
+          data: data as Prisma.PurchaseOrderUncheckedUpdateInput,
+          select: { id: true },
+        });
+      }, TRANSACTION_OPTIONS),
   });
 }
 

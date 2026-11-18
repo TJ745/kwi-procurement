@@ -10,6 +10,7 @@ import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { fromSnapshot, PO_DOCUMENT_INCLUDE } from "@/lib/purchase-order-revisions";
 import { getAuthContext } from "@/lib/session";
+import { documentSignatories } from "@/lib/signatories";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
 import { projectName } from "@/lib/projects";
 
@@ -102,6 +103,7 @@ export async function GET(request: Request, { params }: RouteContext<"/purchase-
     terms: order.terms,
     preparedBy: order.createdBy.name,
     generatedAt: formatDate.dateTime(new Date()),
+    signatories: documentSignatories(settings.signatories, "purchaseOrder", order.createdBy.name),
   };
 
   const pdf = await renderToBuffer(<PurchaseOrderPdf data={data} />);

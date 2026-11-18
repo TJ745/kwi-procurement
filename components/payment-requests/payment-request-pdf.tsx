@@ -25,6 +25,7 @@ import {
   PAYMENT_TYPES,
 } from "@/lib/payment-request-options";
 import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
+import type { Signatory } from "@/lib/signatories";
 
 export type PaymentRequestPdfData = {
   company: {
@@ -72,6 +73,8 @@ export type PaymentRequestPdfData = {
   } | null;
   preparedBy: string;
   generatedAt: string;
+  /** Signature boxes from Settings › Signatures. */
+  signatories: Signatory[];
 };
 
 // Never split words with hyphens ("Vehi-cle"); wrap at spaces only. This applies to every PDF the server renders.
@@ -265,11 +268,12 @@ function signatureHeight(historyRows: number) {
   return Math.max(MIN_SIGN_HEIGHT, SIGN_HEIGHT - shrink);
 }
 
-function SignatureBox({ title, name, height }: { title?: string; name?: string; height: number }) {
+function SignatureBox({ signatory, height }: { signatory: Signatory; height: number }) {
   return (
     <View style={[s.signBox, { height }]}>
-      {title ? <Text style={s.signTitle}>{title}</Text> : <Text> </Text>}
-      {name && <Text style={[s.muted, { marginTop: 2 }]}>{name}</Text>}
+      <Text style={s.signTitle}>{signatory.title || " "}</Text>
+      {signatory.position && <Text style={[s.muted, { marginTop: 2 }]}>{signatory.position}</Text>}
+      {signatory.name && <Text style={{ marginTop: 2 }}>{signatory.name}</Text>}
       <View style={s.signLine}>
         <Text>Signature</Text>
         <Text>Date</Text>
@@ -453,16 +457,13 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
         </View>
 
         <View wrap={false}>
-          <View style={s.signRow}>
-            <SignatureBox title="Prepared By" name={data.preparedBy} height={signHeight} />
-            <SignatureBox title="Checked By" name="Accounts Dept." height={signHeight} />
-            <SignatureBox title="Approved By" name="General Manager" height={signHeight} />
-          </View>
-          <View style={s.signRow}>
-            <SignatureBox title="Executive Director" height={signHeight} />
-            <SignatureBox title="Finance Department" height={signHeight} />
-            <SignatureBox height={signHeight} />
-          </View>
+          {[data.signatories.slice(0, 3), data.signatories.slice(3, 6)].map((row, rowIndex) => (
+            <View key={rowIndex} style={s.signRow}>
+              {row.map((signatory, index) => (
+                <SignatureBox key={index} signatory={signatory} height={signHeight} />
+              ))}
+            </View>
+          ))}
         </View>
 
         {data.history && <PaymentHistory history={data.history} />}

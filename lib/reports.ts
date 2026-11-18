@@ -328,6 +328,7 @@ export function pickCompletion(value: string | string[] | undefined): PoTrackerC
  * One row per payment request (rejected and cancelled ones left out), with its
  * PO, MR, GRNs and Finance dates. A PO is Complete once the invoices submitted
  * to Finance cover its total; a request without a PO once its own invoice is.
+ * Invoice numbers are collected from the request, its PO and the PO's GRNs.
  */
 export async function poTracker(
   range: DateRange,
@@ -363,12 +364,13 @@ export async function poTracker(
           id: true,
           number: true,
           total: true,
+          invoiceNo: true,
           supplierName: true,
           materialRequest: { select: { id: true, number: true } },
           goodsReceipts: {
             where: { status: { notIn: [...VOID_GRN_STATUSES] } },
             orderBy: { number: "asc" },
-            select: { id: true, number: true, deliveryNote: true },
+            select: { id: true, number: true, deliveryNote: true, invoiceNo: true },
           },
           paymentRequests: { where: { status: live }, select: { amount: true, invoiceSubmittedOn: true } },
         },
@@ -388,6 +390,14 @@ export async function poTracker(
         supplierName: po?.supplierName ?? request.supplier?.name ?? request.inFavorOf,
         grns: po?.goodsReceipts ?? [],
         deliveryNote: (po?.goodsReceipts ?? []).some((grn) => grn.deliveryNote),
+        // The invoice may be recorded on the request, its PO or a GRN; list each distinct number.
+        invoiceNos: [
+          ...new Set(
+            [request.invoiceNo, po?.invoiceNo, ...(po?.goodsReceipts ?? []).map((grn) => grn.invoiceNo)]
+              .map((value) => value?.trim())
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ],
         complete,
       };
     })

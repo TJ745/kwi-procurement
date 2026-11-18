@@ -25,6 +25,7 @@ const DEFAULTS: Settings = {
   minPasswordLength: 12,
   defaultVatRate: new Prisma.Decimal(0),
   purchaseOrderTerms: null,
+  signatories: null,
   updatedAt: new Date(0),
 };
 

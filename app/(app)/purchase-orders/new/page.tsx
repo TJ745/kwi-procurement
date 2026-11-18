@@ -64,6 +64,7 @@ export default async function Page({ searchParams }: PageProps<"/purchase-orders
     supplierTelephone: supplier?.details.supplierTelephone ?? "",
     supplierVat: supplier?.details.supplierVat ?? "",
     quotationRef: "",
+    invoiceNo: "",
     currency: settings.currency,
     discount: "0",
     vatRate: settings.defaultVatRate.toString(),

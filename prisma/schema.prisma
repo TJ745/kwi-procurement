@@ -137,6 +137,8 @@ model AppSettings {
   // Purchase order defaults.
   defaultVatRate       Decimal  @default(0) @db.Decimal(5, 2)
   purchaseOrderTerms   String?
+  // Signature boxes printed on MR, PO, PR and GRN PDFs (see lib/signatories.ts).
+  signatories          Json?
   updatedAt            DateTime @updatedAt
 
   @@map("app_settings")
@@ -353,6 +355,8 @@ model PurchaseOrder {
   supplierTelephone     String?
   supplierVat           String?
   quotationRef          String?
+  // Supplier's invoice for this order (also read by the PO Tracker).
+  invoiceNo             String?
   // Amounts in `currency`, rounded to its minor units; computed on the server.
   currency              String
   subtotal              Decimal                 @db.Decimal(18, 3)

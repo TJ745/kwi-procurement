@@ -388,12 +388,12 @@ export function PoTrackerView({
                   </div>
                 </td>
                 <td>{row.supplierName}</td>
-                <td><YesNo value={Boolean(row.invoiceNo)} /></td>
+                <td><YesNo value={row.invoiceNos.length > 0} /></td>
                 <td><YesNo value={row.deliveryNote} /></td>
                 <td>{row.project.client ?? "—"}</td>
                 <td>{`${row.project.name} (${row.project.code})`}</td>
                 <td className="whitespace-nowrap">{date(row.financeSubmittedOn)}</td>
-                <td>{row.invoiceNo ?? "—"}</td>
+                <td>{row.invoiceNos.length > 0 ? row.invoiceNos.join(", ") : "—"}</td>
                 <td>
                   {row.invoiceSubmittedOn ? (
                     <span className="font-medium">Submitted</span>

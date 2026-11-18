@@ -16,6 +16,7 @@ import {
 } from "@/components/print/pdf-footer-image";
 
 import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
+import type { Signatory } from "@/lib/signatories";
 
 export type PurchaseOrderPdfData = {
   company: {
@@ -72,6 +73,8 @@ export type PurchaseOrderPdfData = {
   terms: string | null;
   preparedBy: string;
   generatedAt: string;
+  /** Signature boxes from Settings › Signatures. */
+  signatories: Signatory[];
 };
 
 const BORDER = "#d4d4d4";
@@ -231,11 +234,12 @@ function KV({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function SignatureBox({ title, name }: { title: string; name: string }) {
+function SignatureBox({ signatory }: { signatory: Signatory }) {
   return (
     <View style={s.signBox} wrap={false}>
-      <Text style={s.signTitle}>{title}</Text>
-      <Text style={[s.muted, { marginTop: 3 }]}>{name}</Text>
+      <Text style={s.signTitle}>{signatory.title || " "}</Text>
+      {signatory.position && <Text style={[s.muted, { marginTop: 3 }]}>{signatory.position}</Text>}
+      {signatory.name && <Text style={{ marginTop: 2 }}>{signatory.name}</Text>}
       <View style={s.signLine}>
         <Text>Signature</Text>
         <Text>Date</Text>
@@ -377,8 +381,9 @@ export function PurchaseOrderPdf({ data }: { data: PurchaseOrderPdfData }) {
         </View>
 
         <View style={s.signatures} wrap={false}>
-          <SignatureBox title="Prepared By" name={data.preparedBy} />
-          <SignatureBox title="Approved By" name="General Manager" />
+          {data.signatories.map((signatory, index) => (
+            <SignatureBox key={index} signatory={signatory} />
+          ))}
         </View>
 
         <PdfFooterImage layout={footer} />

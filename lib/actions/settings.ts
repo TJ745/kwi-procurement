@@ -7,6 +7,7 @@ import { ActionError, runMutation } from "@/lib/actions/run-mutation";
 import { DOCUMENT_TYPES } from "@/lib/document-numbering";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { signatoriesSchema } from "@/lib/signatories";
 import {
   companySettingsSchema,
   documentSequenceSchema,
@@ -82,6 +83,17 @@ export async function updatePurchaseOrderDefaults(input: unknown) {
         defaultVatRate: data.defaultVatRate,
         purchaseOrderTerms: orNull(data.purchaseOrderTerms),
       }),
+  });
+}
+
+export async function updateSignatories(input: unknown) {
+  return runMutation({
+    requirement: "super_admin",
+    audit: { entity: "settings", action: "update", id: () => "1" },
+    schema: signatoriesSchema,
+    input,
+    success: "Signatures saved. PDFs printed from now on use them.",
+    run: (data) => saveSettings({ signatories: data }),
   });
 }
 

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/master-data/delete-button";
+import { UndoRevisionButton } from "@/components/purchase-orders/undo-revision-button";
 import { StatusBadge } from "@/components/status/status-badge";
 import { StatusMenu } from "@/components/status/status-menu";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -25,6 +27,7 @@ import {
 import {
   deletePurchaseOrderFromDetail,
   setPurchaseOrderStatus,
+  undoPurchaseOrderRevision,
 } from "@/lib/actions/purchase-orders";
 import { listGrnsForPurchaseOrder } from "@/lib/data/grns";
 import { getPurchaseOrderBalance, listPaymentRequestsForPurchaseOrder } from "@/lib/data/payment-requests";
@@ -197,6 +200,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
               <Detail label="Email" value={order.supplierEmail} />
               <Detail label="Tel" value={order.supplierTelephone} />
               <Detail label="Quotation reference" value={order.quotationRef} />
+              <Detail label="Invoice No" value={order.invoiceNo} />
             </dl>
           </CardContent>
         </Card>
@@ -309,6 +313,15 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]"
               Current version: <span className="font-mono">{order.number}</span>. Earlier versions are kept exactly as
               they were issued.
             </CardDescription>
+            {can("purchase_orders:edit") && order.revisions[0] && (
+              <CardAction>
+                <UndoRevisionButton
+                  currentNumber={order.number}
+                  previousNumber={order.revisions[0].number}
+                  action={undoPurchaseOrderRevision.bind(null, order.id)}
+                />
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col divide-y">

@@ -179,6 +179,7 @@ export function PurchaseOrderForm({
             <TextField control={control} name="supplierEmail" label="Email" type="email" autoComplete="off" />
             <TextField control={control} name="supplierTelephone" label="Tel" type="tel" autoComplete="off" />
             <TextField control={control} name="quotationRef" label="Quotation reference" autoComplete="off" />
+            <TextField control={control} name="invoiceNo" label="Invoice No" autoComplete="off" />
           </FieldGroup>
         </CardContent>
       </Card>

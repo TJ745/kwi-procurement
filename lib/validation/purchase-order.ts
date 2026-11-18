@@ -86,6 +86,7 @@ export const purchaseOrderSchema = z
     supplierTelephone: text("Tel", 30),
     supplierVat: text("VAT number", 50),
     quotationRef: text("Quotation reference", 100),
+    invoiceNo: text("Invoice No", 100),
     currency: z.string().regex(/^[A-Z]{3}$/, "Select a currency."),
     discount: amount("Discount"),
     vatRate: z

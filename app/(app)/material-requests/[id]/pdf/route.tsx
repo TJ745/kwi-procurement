@@ -8,6 +8,7 @@ import { createDateFormatter, formatQuantity } from "@/lib/format";
 import { loadPdfImages } from "@/lib/pdf-images";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { documentSignatories } from "@/lib/signatories";
 import { projectName } from "@/lib/projects";
 
 /** Printable A4 PDF of a material request, for users who can view it. */
@@ -59,6 +60,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/material
     supplier: request.supplier?.name ?? null,
     createdBy: request.createdBy.name,
     generatedAt: formatDate.dateTime(new Date()),
+    signatories: documentSignatories(settings.signatories, "materialRequest", request.createdBy.name),
     lines: request.lines.map((line) => ({
       lineNo: line.lineNo,
       name: line.name,

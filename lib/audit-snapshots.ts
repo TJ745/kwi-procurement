@@ -18,6 +18,7 @@ import { paymentTermLabel } from "@/lib/validation/master-data";
 import { MATERIAL_REQUEST_STATUS_LABELS } from "@/lib/validation/material-request";
 import { PURCHASE_ORDER_STATUS_LABELS } from "@/lib/validation/purchase-order";
 import { projectLabel } from "@/lib/projects";
+import { readSignatories, SIGNATORY_DOCUMENTS } from "@/lib/signatories";
 
 /** Audited record types and how they are named in the log. */
 export const AUDIT_ENTITIES = {
@@ -136,6 +137,7 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           supplierTelephone: field("Supplier tel", r.supplierTelephone),
           supplierVat: field("Supplier VAT", r.supplierVat),
           quotationRef: field("Quotation ref", r.quotationRef),
+          invoiceNo: field("Invoice no", r.invoiceNo),
           lines: field("Items", clip(r.lines.map((l) => `${l.lineNo}. ${l.name} — ${formatQuantity(l.quantity)} ${l.unit} × ${formatMoney(l.unitPrice.toString(), r.currency, false)} = ${formatMoney(l.total.toString(), r.currency, false)}`).join("; "))),
           discount: field("Discount", m(r.discount)),
           vatRate: field("VAT %", `${r.vatRate.toString()}%`),
@@ -237,6 +239,15 @@ export async function loadSnapshot(entity: AuditEntity, id: string): Promise<Sna
           minPasswordLength: field("Minimum password length", r.minPasswordLength),
           defaultVatRate: field("Default VAT %", `${r.defaultVatRate.toString()}%`),
           purchaseOrderTerms: field("Default PO terms", r.purchaseOrderTerms && clip(r.purchaseOrderTerms)),
+          ...Object.fromEntries(
+            Object.entries(readSignatories(r.signatories)).map(([key, boxes]) => [
+              `signatories.${key}`,
+              field(
+                `Signatures – ${SIGNATORY_DOCUMENTS.find((document) => document.key === key)?.label ?? key}`,
+                boxes.map((entry) => [entry.title, entry.position, entry.name].filter(Boolean).join(" · ")).join(" | "),
+              ),
+            ]),
+          ),
         },
       };
     }

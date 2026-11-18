@@ -58,6 +58,7 @@ export default async function Page({ params }: PageProps<"/purchase-orders/[id]/
           supplierTelephone: order.supplierTelephone ?? "",
           supplierVat: order.supplierVat ?? "",
           quotationRef: order.quotationRef ?? "",
+          invoiceNo: order.invoiceNo ?? "",
           currency: order.currency,
           discount: order.discount.toString(),
           vatRate: order.vatRate.toString(),

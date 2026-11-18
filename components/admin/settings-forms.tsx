@@ -12,6 +12,7 @@ import { FieldGroup } from "@/components/ui/field";
 import type { ActionResult } from "@/lib/action-result";
 import { formatDocumentNumber } from "@/lib/document-numbering";
 import { DATE_FORMATS } from "@/lib/format";
+import { SIGNATORY_DOCUMENTS, type Signatories, signatoriesSchema } from "@/lib/signatories";
 import {
   type CompanySettingsInput,
   type DocumentSequenceInput,
@@ -202,6 +203,52 @@ export function DocumentSequenceForm({
           description={includeYear ? undefined : "Requires the year in the number."}
         />
       </FieldGroup>
+      <SaveButton isSubmitting={form.formState.isSubmitting} isDirty={form.formState.isDirty} />
+    </form>
+  );
+}
+
+export function SignatoriesForm({
+  defaultValues,
+  action,
+}: {
+  defaultValues: Signatories;
+  action: (input: Signatories) => Promise<ActionResult>;
+}) {
+  const { form, onSubmit } = useActionForm({ schema: signatoriesSchema, defaultValues, action, resetOnSuccess: true });
+  const { control } = form;
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+      {SIGNATORY_DOCUMENTS.map((document) => (
+        <fieldset key={document.key} className="flex flex-col gap-3">
+          <legend className="mb-2 text-sm font-semibold">{document.label}</legend>
+          {document.defaults.map((_, index) => (
+            <div key={index} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-3">
+              <TextField
+                control={control}
+                name={`${document.key}.${index}.title`}
+                label={`Box ${index + 1} · Title`}
+                placeholder="e.g. Reviewed By"
+                autoComplete="off"
+              />
+              <TextField
+                control={control}
+                name={`${document.key}.${index}.position`}
+                label="Position"
+                placeholder="e.g. Procurement Supervisor"
+                autoComplete="off"
+              />
+              <TextField
+                control={control}
+                name={`${document.key}.${index}.name`}
+                label="Name"
+                placeholder={index === 0 ? "Empty = person who created it" : "e.g. Irfan ud din"}
+                autoComplete="off"
+              />
+            </div>
+          ))}
+        </fieldset>
+      ))}
       <SaveButton isSubmitting={form.formState.isSubmitting} isDirty={form.formState.isDirty} />
     </form>
   );

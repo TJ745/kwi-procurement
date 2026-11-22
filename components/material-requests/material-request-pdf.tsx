@@ -17,10 +17,7 @@ import {
 
 import type { PdfFooter, PdfImage } from "@/lib/pdf-images";
 import type { Signatory } from "@/lib/signatories";
-import {
-  MATERIAL_REQUEST_STATUS_LABELS,
-  type MaterialRequestStatusValue,
-} from "@/lib/validation/material-request";
+import type { MaterialRequestStatusValue } from "@/lib/validation/material-request";
 
 export type MaterialRequestPdfData = {
   company: {
@@ -237,9 +234,6 @@ export function MaterialRequestPdf({ data }: { data: MaterialRequestPdfData }) {
           <View style={styles.titleBlock}>
             <Text style={styles.title}>MATERIAL REQUEST</Text>
             <Text style={styles.number}>{data.number}</Text>
-            <Text style={[styles.muted, { marginTop: 2 }]}>
-              Status: {MATERIAL_REQUEST_STATUS_LABELS[data.status]}
-            </Text>
           </View>
         </View>
 

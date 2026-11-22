@@ -268,9 +268,7 @@ export function GrnPdf({ data }: { data: GrnPdfData }) {
             <Text style={[s.bold, { fontSize: 10.5, marginTop: 3 }]}>
               {data.number}
             </Text>
-            <Text style={[s.muted, { marginTop: 2 }]}>Date: {data.date}</Text>
-            <Text style={s.muted}>Status: {data.status}</Text>
-          </View>
+            <Text style={[s.muted, { marginTop: 2 }]}>Date: {data.date}</Text>          </View>
         </View>
 
         <View style={s.panels}>

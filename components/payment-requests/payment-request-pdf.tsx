@@ -378,9 +378,7 @@ export function PaymentRequestPdf({ data }: { data: PaymentRequestPdfData }) {
             <Text style={[s.bold, { fontSize: 11, marginTop: 4 }]}>
               {data.number}
             </Text>
-            <Text style={[s.muted, { marginTop: 2 }]}>Date: {data.date}</Text>
-            <Text style={s.muted}>Status: {data.status}</Text>
-          </View>
+            <Text style={[s.muted, { marginTop: 2 }]}>Date: {data.date}</Text>          </View>
         </View>
 
         <View style={s.groups}>

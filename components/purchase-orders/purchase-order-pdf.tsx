@@ -207,14 +207,11 @@ const s = StyleSheet.create({
   signTitle: { fontFamily: "Helvetica-Bold", fontSize: 10 },
   signLine: {
     marginTop: "auto",
-    borderTopWidth: 1,
-    borderTopColor: "#737373",
-    paddingTop: 3,
-    flexDirection: "row",
-    justifyContent: "space-between",
     color: MUTED,
     fontSize: 7.5,
   },
+  // "Signature" above the line, "Date" below it on the left.
+  signRule: { borderTopWidth: 1, borderTopColor: "#737373", marginTop: 1, marginBottom: 3 },
   footer: {
     position: "absolute",
     bottom: 22,
@@ -283,6 +280,7 @@ function SignatureBox({ signatory }: { signatory: Signatory }) {
       {signatory.name && <Text style={{ marginTop: 2 }}>{signatory.name}</Text>}
       <View style={s.signLine}>
         <Text>Signature</Text>
+        <View style={s.signRule} />
         <Text>Date</Text>
       </View>
     </View>

@@ -17,7 +17,7 @@ export const SIGNATORY_DOCUMENTS = [
   {
     key: "purchaseOrder",
     label: "Purchase Order",
-    defaults: [box("Prepared By"), box("Approved By", "General Manager")],
+    defaults: [box("Prepared By"), box("Approved By", "General Manager"), box("")],
   },
   {
     key: "paymentRequest",
@@ -53,7 +53,7 @@ const boxes = (count: number) => z.array(signatorySchema).length(count);
 
 export const signatoriesSchema = z.object({
   materialRequest: boxes(3),
-  purchaseOrder: boxes(2),
+  purchaseOrder: boxes(3),
   paymentRequest: boxes(6),
   goodsReceipt: boxes(3),
 });
@@ -64,12 +64,20 @@ const DEFAULTS = Object.fromEntries(
   SIGNATORY_DOCUMENTS.map((document) => [document.key, document.defaults.map((entry) => ({ ...entry }))]),
 ) as Signatories;
 
-/** The saved signatories, falling back to the defaults per document when missing or invalid. */
+/**
+ * The saved signatories, falling back to the defaults per document when missing or invalid.
+ * Boxes saved before a document gained boxes are kept, with the new boxes added empty.
+ */
 export function readSignatories(saved: unknown): Signatories {
   const value = (saved ?? {}) as Record<string, unknown>;
   return Object.fromEntries(
-    SIGNATORY_DOCUMENTS.map(({ key }) => {
-      const parsed = signatoriesSchema.shape[key].safeParse(value[key]);
+    SIGNATORY_DOCUMENTS.map(({ key, defaults }) => {
+      const entries = value[key];
+      const padded =
+        Array.isArray(entries) && entries.length < defaults.length
+          ? [...entries, ...defaults.slice(entries.length).map(() => box(""))]
+          : entries;
+      const parsed = signatoriesSchema.shape[key].safeParse(padded);
       return [key, parsed.success ? parsed.data : DEFAULTS[key]];
     }),
   ) as Signatories;
